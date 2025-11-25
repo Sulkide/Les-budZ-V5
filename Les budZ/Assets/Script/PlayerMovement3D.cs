@@ -334,6 +334,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             playerControls.enabled = true;
             playerControls.actions.Enable();
+            rb.interpolation = RigidbodyInterpolation.None;
         }
         else
         {
@@ -341,6 +342,7 @@ public class PlayerMovement3D : NetworkBehaviour
             playerControls.enabled = false;
             playerControls.actions.Disable();
             rb.isKinematic = true;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
 
     }
