@@ -43,7 +43,7 @@ public class Collectible : MonoBehaviour
                 
                 if (isCollectible && pm)
                 {
-                    string playerName = pm.parent.name;
+                    string playerName = pm.name;
                     GameManager.instance.addXP(XP);
                     SoundManager.Instance.PlayRandomSFXOnNextBarEnd(clipsRandomSnap, 0.9f, 1.1f);
                     Collect(playerName);

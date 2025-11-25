@@ -9,7 +9,7 @@ using TMPro;
 using Unity.Netcode;
 
 
-public class GameManager : NetworkBehaviour
+public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
     
@@ -385,33 +385,7 @@ public class GameManager : NetworkBehaviour
         
         //ScoreText.text = Score.ToString();
 
-        if (nextPlayerID <= 1) return;
-        
-        if (player1Location)
-        {
-            isPlayer1present = true;
-            player1CurrentLife = players[0].currentLife;
-        }
 
-        if (player2Location)
-        {
-            isPlayer2present = true;
-     
-            player2CurrentLife = players[1].currentLife;
-            
-        }
-
-        if (player3Location)
-        {
-            isPlayer3present = true;
-            player3CurrentLife = players[2].currentLife;
-        }
-
-        if (player4Location)
-        {
-            isPlayer4present = true;
-            player4CurrentLife = players[3].currentLife;
-        }
     }
 
     private void SpawnPlayers()

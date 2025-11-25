@@ -1,13 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using DG.Tweening;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement3D : MonoBehaviour
+public class PlayerMovement3D : NetworkBehaviour
 {
     [Header("Options General")] 
     public int playerID = 0;
@@ -32,12 +32,18 @@ public class PlayerMovement3D : MonoBehaviour
     public bool canGlide = true;
 
     [Space(5)]
+    [Header("Online")]
+    public NetworkVariable<FixedString64Bytes> netAnimationState = new NetworkVariable<FixedString64Bytes>("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    
+    [Space(5)]
     [Header("References")]
     public PlayerData data;
     public PlayerInput playerControls;
     public GameObject baseModelPrefab;
     public Animator playerAnimator;
     public Collider collider;
+    public GameObject colliderObject;
     public Rigidbody rb;
     public GameObject parent;
     public PhysicsMaterial frictionMaterial;
@@ -159,10 +165,18 @@ public class PlayerMovement3D : MonoBehaviour
 
     private void Awake()
     {
+        playerID = GameManager.instance.AssignePlayerID();
+        gameObject.name = "Player " + playerID;
+        if (gameObject.transform.parent != null)
+        {
+            parent = gameObject.transform.parent.gameObject;
+        }
+        
         rb = GetComponent<Rigidbody>();
         collider = GetComponent<Collider>();
-        playerControls = GetComponentInParent<PlayerInput>();
-
+        playerControls = GetComponent<PlayerInput>();
+        playerControls.actions.Disable();   
+        playerControls.enabled = false;
         defaultConstraints = rb.constraints;
     }
 
@@ -173,7 +187,7 @@ public class PlayerMovement3D : MonoBehaviour
         capsuleSize = collider.bounds.size;
         capsuleCenter = collider.bounds.center;
 
-        playerID = GameManager.instance.AssignePlayerID();
+ 
         // Gravité "par défaut" venant des PlayerData
         if (data != null)
             SetGravityScale(data.gravityScale);
@@ -182,11 +196,7 @@ public class PlayerMovement3D : MonoBehaviour
         cam = Camera.main;
         originalScale = transform.localScale;
 
-        if (gameObject.transform.parent != null)
-        {
-            parent = gameObject.transform.parent.gameObject;
-            parent.name = "Player " + playerID;
-        }
+
 
         if (data != null)
         {
@@ -196,12 +206,16 @@ public class PlayerMovement3D : MonoBehaviour
         {
             dashesLeft = 1;
         }
+        
+        
     }
 
     void OnEnable()
     {
         #region ENABLED INPUT ACTIONS
 
+        if (!IsSpawned || !IsOwner) return;
+        
         var actions = playerControls.actions;
         if (!string.IsNullOrEmpty(actionMapName))
             actions.FindActionMap(actionMapName, throwIfNotFound: true);
@@ -244,19 +258,8 @@ public class PlayerMovement3D : MonoBehaviour
 
         flipAction.performed += OnFlipPressed;
 
-        moveAction.Enable();
-        dpadAction.Enable();
-        aimAction.Enable();
-        jumpAction.Enable();
-        dashAction.Enable();
-        useAction.Enable();
-        attackAction.Enable();
-        grapAction.Enable();
-        startAction.Enable();
-        pauseAction.Enable();
-        selectRAction.Enable();
-        selectLAction.Enable();
-        flipAction.Enable();
+        playerControls.actions.Enable();
+
 
         #endregion
     }
@@ -265,6 +268,8 @@ public class PlayerMovement3D : MonoBehaviour
     {
         #region DISABLE INPUT ACTIONS
 
+        if (!IsOwner) return;
+        
         if (jumpAction != null)
         {
             jumpAction.performed -= OnJumpPressed;
@@ -322,9 +327,28 @@ public class PlayerMovement3D : MonoBehaviour
 
         #endregion
     }
+    
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner)
+        {
+            playerControls.enabled = true;
+            playerControls.actions.Enable();
+        }
+        else
+        {
+            netAnimationState.OnValueChanged += OnAnimationChanged;
+            playerControls.enabled = false;
+            playerControls.actions.Disable();
+            rb.isKinematic = true;
+        }
+
+    }
 
     private void Update()
     {
+        if (!IsOwner)return;
+        if (moveAction == null) return;
         if (GameManager.instance != null && GameManager.instance.isPaused) return;
 
         moveInput = moveAction.ReadValue<Vector2>();
@@ -357,12 +381,17 @@ public class PlayerMovement3D : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (!IsOwner)
+        {
+            rb.isKinematic = true;
+            return;
+        }
         if (GameManager.instance != null && GameManager.instance.isPaused) return;
 
         if (GameManager.instance != null)
         {
-            GameManager.instance.FindPlayer(parent.name, transform, this);
-            GameManager.instance.CharacterCheck(parent.name, data.playerName);
+            GameManager.instance.FindPlayer(name, transform, this);
+            GameManager.instance.CharacterCheck(name, data.playerName);
         }
 
 
@@ -413,36 +442,43 @@ public class PlayerMovement3D : MonoBehaviour
 
     private void OnFlipPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         GameManager.instance.ChangeDimension();
     }
 
     private void OnSelectRPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnSelectRPressed");
     }
 
     private void OnPausePressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnPausePressed");
     }
 
     private void OnStartPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnStartPressed");
     }
 
     private void OnGrapReleased(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnGrapReleased");
     }
 
     private void OnGrapPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnGrapPressed");
     }
 
     private void OnAttackReleased(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         if (isStayAirAttacking)
         {
             isStayAirAttacking = false;
@@ -452,6 +488,7 @@ public class PlayerMovement3D : MonoBehaviour
 
     private void OnAttackPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         if (cannotMove || data == null || !canAttack) return;
         if (isDashing || isDashAttacking) return;
         if (isGroundPounding) return;
@@ -490,28 +527,33 @@ public class PlayerMovement3D : MonoBehaviour
 
     private void OnUseReleased(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnUseReleased");
     }
 
     private void OnUsePressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         Debug.Log("OnUsePressed");
     }
 
     private void OnDashPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         if (cannotMove || data == null || !canDash) return;
         lastPressedDashTime = data.dashInputBufferTime;
     }
 
     private void OnDashReleased(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         if (cannotMove || data == null || !canDash) return;
         lastPressedDashTime = 0;
     }
 
     private void OnJumpReleased(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         if (isGliding)
         {
             StopGlide();
@@ -524,6 +566,7 @@ public class PlayerMovement3D : MonoBehaviour
 
     private void OnJumpPressed(InputAction.CallbackContext obj)
     {
+        if (!IsOwner)return;
         lastJumpButtonTime = Time.time;
 
         if (isStayAirAttacking)
@@ -1721,9 +1764,9 @@ public class PlayerMovement3D : MonoBehaviour
 
     #endregion
 
-    #region MISC
+    #region ANIMATION
 
-    public void SwitchAnimation(string animationName)
+    public void DisableAllAnimations()
     {
         playerAnimator.SetBool("isWalking", false);
         playerAnimator.SetBool("isRunning", false);
@@ -1743,10 +1786,40 @@ public class PlayerMovement3D : MonoBehaviour
         playerAnimator.SetBool("isGroundPound", false);
         playerAnimator.SetBool("isLanded", false);
         playerAnimator.SetBool("isGliding", false);
-
-        if (string.IsNullOrEmpty(animationName)) return;
-        playerAnimator.SetBool(animationName, true);
     }
+    public void SwitchAnimation(string animationName)
+    {
+        DisableAllAnimations();
+
+        if (!string.IsNullOrEmpty(animationName))
+            playerAnimator.SetBool(animationName, true);
+        
+        if (IsOwner)
+        {
+            UpdateAnimationServerRpc(animationName);
+        }
+    }
+
+    [ServerRpc]
+    void UpdateAnimationServerRpc(string animationName)
+    {
+        netAnimationState.Value = animationName;
+    }
+    void OnAnimationChanged(FixedString64Bytes oldValue, FixedString64Bytes newValue)
+    {
+        SwitchAnimationRemote(newValue.ToString());
+    }
+
+    void SwitchAnimationRemote(string animationName)
+    {
+        DisableAllAnimations();
+
+        if (!string.IsNullOrEmpty(animationName))
+            playerAnimator.SetBool(animationName, true);
+    }
+
+    #endregion
+
 
     #region GROUND CALLBACKS
 
@@ -1834,7 +1907,7 @@ public class PlayerMovement3D : MonoBehaviour
 
     #endregion
 
-    #endregion
+  
 
     #region GIZMOS
     private void OnDrawGizmos()
@@ -1906,17 +1979,43 @@ public class PlayerMovement3D : MonoBehaviour
 
     private Transform GetModelRoot()
     {
-        if (transform.childCount > 0)
-        {
-            Transform firstChild = transform.GetChild(0);
-            if (firstChild.childCount > 0)
-                return firstChild.GetChild(0);
+        // Si il n'y a pas d'enfants → on anime rien
+        if (transform.childCount == 0)
+            return transform;
 
-            return firstChild;
+        // On récupère le premier enfant
+        Transform firstChild = transform.GetChild(0);
+
+        // 🔥 Si le premier enfant est le colliderObject → ON LE SKIP
+        if (colliderObject != null && firstChild == colliderObject.transform)
+        {
+            // S'il y a un autre enfant on l'utilise
+            if (transform.childCount > 1)
+                return transform.GetChild(1);
+        
+            // Sinon on ne tweene rien
+            return null;
         }
 
-        return transform;
+        // 🔥 Si colliderObject est dans ses sous-enfants → ON LE SKIP aussi
+        if (colliderObject != null)
+        {
+            // On cherche un sous-child NON colliderObject
+            for (int i = 0; i < firstChild.childCount; i++)
+            {
+                Transform c = firstChild.GetChild(i);
+                if (c != colliderObject.transform)
+                    return c;
+            }
+        }
+
+        // Sinon comportement par défaut
+        if (firstChild.childCount > 0)
+            return firstChild.GetChild(0);
+
+        return firstChild;
     }
+
 
     public Tween TweenSquish(float duration = 0.5f, float squishX = 0.9f, float stretchY = 1.1f)
     {
@@ -1950,20 +2049,31 @@ public class PlayerMovement3D : MonoBehaviour
 
         Sequence seq = DOTween.Sequence();
 
-        seq.Append(model.DOScale(
-                new Vector3(1.7f, 0.5f, 1f),
-                squishDuration
-            )
-            .SetEase(Ease.OutQuad));
+        Vector3 startScale = originalScale;
+        Vector3 squishScale = new Vector3(1.7f, 0.5f, 1f);
 
-        seq.Append(model.DOScale(
-                originalScale,
-                recoverDuration
-            )
-            .SetEase(Ease.OutElastic, 2f));
+        float offsetY = (startScale.y - squishScale.y) * 0.5f;
+
+        Vector3 startPos = model.localPosition;
+        Vector3 squishPos = startPos - new Vector3(0f, offsetY, 0f);
+        
+        seq.Append(
+            model.DOScale(squishScale, squishDuration).SetEase(Ease.OutQuad)
+        );
+        seq.Join(
+            model.DOLocalMove(squishPos, squishDuration).SetEase(Ease.OutQuad)
+        );
+        
+        seq.Append(
+            model.DOScale(startScale, recoverDuration).SetEase(Ease.OutElastic, 2f)
+        );
+        seq.Join(
+            model.DOLocalMove(startPos, recoverDuration).SetEase(Ease.OutElastic, 2f)
+        );
 
         return seq.Play();
     }
+
 
     public Tween TweenStretch(Vector3 stretchFactors, float duration = 0.2f, Ease ease = Ease.Linear)
     {
