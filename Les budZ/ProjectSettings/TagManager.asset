@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - Enemy
+  - p1
+  - p2
+  - p3
+  - p4
+  - Target
+  - Dummy
+  - Prop
+  - MovingPlatform
+  - CantGrap
+  - Slippery
+  - AllPlayer
+  - Dash
+  - Node
+  - Collectible
+  - DontClone
+  - HigherShadow
+  - Blade
+  - Filter
+  - IgnoreFilter
+  - Ignore
+  - GlobalLight
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - Ground
+  - Enemy
+  - Fairy
+  - Projectile
+  - ProjectileCollision
+  - Player
+  - Ragdoll
+  - EnemyProjectile
+  - Collectible
+  - HitPoint
+  - PlayerXPlayer
+  - Bumper
+  - Spirit
+  - Bullet
+  - BulletCollison
+  - UseZone
+  - Phantom
+  - CheckPoint
+  - marker
+  - background
+  - ignore
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  m_RenderingLayers:
+  - Default
