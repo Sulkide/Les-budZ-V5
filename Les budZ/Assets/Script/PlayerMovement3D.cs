@@ -3,12 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using DG.Tweening;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerMovement3D : MonoBehaviour
 {
-    [Header("Options General")]
+    [Header("Options General")] 
+    public int playerID = 0;
     public int currentLife = 5;
     public float gravityScale;
     public float damageCooldown = 2.5f;
@@ -171,6 +173,7 @@ public class PlayerMovement3D : MonoBehaviour
         capsuleSize = collider.bounds.size;
         capsuleCenter = collider.bounds.center;
 
+        playerID = GameManager.instance.AssignePlayerID();
         // Gravité "par défaut" venant des PlayerData
         if (data != null)
             SetGravityScale(data.gravityScale);
@@ -182,6 +185,7 @@ public class PlayerMovement3D : MonoBehaviour
         if (gameObject.transform.parent != null)
         {
             parent = gameObject.transform.parent.gameObject;
+            parent.name = "Player " + playerID;
         }
 
         if (data != null)

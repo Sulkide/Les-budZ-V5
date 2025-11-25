@@ -6,15 +6,16 @@ using System.IO;
 using System;
 using System.Collections;
 using TMPro;
+using Unity.Netcode;
 
 
-public class GameManager : MonoBehaviour
+public class GameManager : NetworkBehaviour
 {
     public static GameManager instance;
     
     
     public bool is3d;
-    
+    public int nextPlayerID = 1;
     [SerializeField] private PauseMenu pauseMenu;
 
     public int fileID;
@@ -166,7 +167,6 @@ public class GameManager : MonoBehaviour
     public int player3MissJump;
     public int player4MissJump;
     
-    public PlayerInputManager playerInputManager;
     public List<GameObject> playerPrefabs;
     public Transform parentForPlayers;
     private int nextPrefabIndex = 0;
@@ -229,11 +229,7 @@ public class GameManager : MonoBehaviour
         prochainPalier = basePalier;
         
         Screen.SetResolution(3840, 2160, FullScreenMode.FullScreenWindow);
-
-        if (!playerInputManager)
-        {
-            playerInputManager = GetComponent<PlayerInputManager>();
-        }
+        
         
         if (realTimeText == null)
         {
@@ -343,8 +339,8 @@ public class GameManager : MonoBehaviour
         
         
         ResetElementsOnLoad();
-        ForcePlayerJoin();
-        SpawnPlayers();
+        //ForcePlayerJoin();
+        //SpawnPlayers();
 
         
         // À chaque rechargement de scène, détruit les collectibles dont l'ID figure dans la liste permanente
@@ -389,6 +385,8 @@ public class GameManager : MonoBehaviour
         
         //ScoreText.text = Score.ToString();
 
+        if (nextPlayerID <= 1) return;
+        
         if (player1Location)
         {
             isPlayer1present = true;
@@ -637,53 +635,7 @@ public class GameManager : MonoBehaviour
     }
 
 
-    void ForcePlayerJoin()
-    {
-        test += 1;
 
-        playerInputManager.playerPrefab = null;
-        nextPrefabIndex = 0;
-
-        if (isPlayer1present)
-        {
-            playerInputManager.playerPrefab = playerPrefabs[0];
-
-            players[0] = Instantiate(playerInputManager.playerPrefab, respawnPoint.position, Quaternion.identity)
-                .GetComponentInChildren<PlayerMovement3D>();
-
-            playerInputManager.playerPrefab = playerPrefabs[1];
-            nextPrefabIndex = 2;
-        }
-
-        if (isPlayer2present)
-        {
-            playerInputManager.playerPrefab = playerPrefabs[1];
-            players[1] = Instantiate(playerInputManager.playerPrefab, respawnPoint.position, Quaternion.identity)
-                .GetComponentInChildren<PlayerMovement3D>();
-            playerInputManager.playerPrefab = playerPrefabs[2];
-            nextPrefabIndex = 3;
-        }
-
-        if (isPlayer3present)
-        {
-            playerInputManager.playerPrefab = playerPrefabs[2];
-            players[2] = Instantiate(playerInputManager.playerPrefab, respawnPoint.position, Quaternion.identity)
-                .GetComponentInChildren<PlayerMovement3D>();
-            playerInputManager.playerPrefab = playerPrefabs[3];
-            nextPrefabIndex = 4;
-        }
-
-        if (isPlayer4present)
-        {
-            playerInputManager.playerPrefab = playerPrefabs[3];
-            players[3] = Instantiate(playerInputManager.playerPrefab, respawnPoint.position, Quaternion.identity)
-                .GetComponentInChildren<PlayerMovement3D>();
-            playerInputManager.playerPrefab = playerPrefabs[4];
-            nextPrefabIndex = 5;
-        }
-
-        //playerInputManager.onPlayerJoined += OnPlayerJoined;
-    }
 
     private void LateUpdate()
     {
@@ -732,41 +684,7 @@ public class GameManager : MonoBehaviour
     }
 
 
-
-    void OnPlayerJoined(PlayerInput player)
-    {
-        if (playerPrefabs.Count > 0)
-        {
-            playerInputManager.playerPrefab = playerPrefabs[nextPrefabIndex];
-            nextPrefabIndex = (nextPrefabIndex + 1) % playerPrefabs.Count;
-        }
-
-        if (parentForPlayers != null)
-        {
-            player.transform.SetParent(parentForPlayers);
-
-            if (isPlayer1Dead == false && isPlayer1present)
-            {
-                player.transform.position = player1Location.position;
-            }
-            else if (isPlayer2Dead == false && isPlayer2present)
-            {
-                player.transform.position = player2Location.position;
-            }
-            else if (isPlayer3Dead == false && isPlayer3present)
-            {
-                player.transform.position = player3Location.position;
-            }
-            else if (isPlayer4Dead == false && isPlayer4present)
-            {
-                player.transform.position = player4Location.position;
-            }
-            else
-            {
-                player.transform.position = respawnPoint.position;
-            }
-        }
-    }
+    
 
     private void LevelUp()
     {
@@ -1292,6 +1210,12 @@ public class GameManager : MonoBehaviour
     }
     
     #endregion
+
+    public int AssignePlayerID()
+    {
+        nextPlayerID++;
+        return nextPlayerID-1;
+    }
     
     
     private void UpdatePlayTime()

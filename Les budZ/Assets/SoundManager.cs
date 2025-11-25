@@ -111,7 +111,7 @@ public class SoundManager : MonoBehaviour
 
         if (completedBars != lastBeatBarIndex)
         {
-            Debug.Log("BEAT");
+            //Debug.Log("BEAT");
             lastBeatBarIndex = completedBars;
         }
     }

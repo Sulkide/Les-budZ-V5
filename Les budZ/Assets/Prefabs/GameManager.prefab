@@ -267,9 +267,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1447344462007547925}
+  - component: {fileID: 4529029872377570863}
   - component: {fileID: 8410201366613941503}
   - component: {fileID: 6248098250637441170}
-  - component: {fileID: 165695823733354347}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -297,6 +297,31 @@ Transform:
   - {fileID: 4328398683530265302}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4529029872377570863
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2602989249743484161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3038998469
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &8410201366613941503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,12 +334,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1f3b934c958e8c48a9d4b9955497d19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  is3d: 0
+  ShowTopMostFoldoutHeaderGroup: 1
+  is3d: 1
+  nextPlayerID: 1
   pauseMenu: {fileID: 315890445866374970}
   fileID: 0
   mainCamera: {fileID: 0}
   targetTransform: {fileID: 4328398683530265302}
-  targetOffset: {x: 0, y: 3, z: -5}
+  targetOffset: {x: 0, y: 0, z: 0}
   targetSmoothTime: 0.15
   cameraFlip3D: {fileID: 0}
   gameTime: 
@@ -396,7 +423,6 @@ MonoBehaviour:
   player2MissJump: 0
   player3MissJump: 0
   player4MissJump: 0
-  playerInputManager: {fileID: 165695823733354347}
   playerPrefabs:
   - {fileID: 4271707286183205814, guid: 7bae1441e58e8084f9c3117727283c41, type: 3}
   - {fileID: 4271707286183205814, guid: c4c358fb69b555546832130a82188a2f, type: 3}
@@ -452,50 +478,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1befb4edb402aeb4ca502ed3b792ef17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &165695823733354347
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2602989249743484161}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 621567455fd1c4ceb811cc8a00b6a1a5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_NotificationBehavior: 0
-  m_MaxPlayerCount: 4
-  m_AllowJoining: 1
-  m_JoinBehavior: 0
-  m_PlayerJoinedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_PlayerLeftEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_JoinAction:
-    m_UseReference: 0
-    m_Action:
-      m_Name: Join
-      m_Type: 0
-      m_ExpectedControlType: 
-      m_Id: cd2327b6-7d19-42aa-ba20-fdece27850a2
-      m_Processors: 
-      m_Interactions: 
-      m_SingletonActionBindings: []
-      m_Flags: 0
-    m_Reference: {fileID: 0}
-  m_PlayerPrefab: {fileID: 0}
-  m_SplitScreen: 0
-  m_MaintainAspectRatioInSplitScreen: 0
-  m_FixedNumberOfSplitScreens: -1
-  m_SplitScreenRect:
-    serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
 --- !u!1 &4049137142379446508
 GameObject:
   m_ObjectHideFlags: 0

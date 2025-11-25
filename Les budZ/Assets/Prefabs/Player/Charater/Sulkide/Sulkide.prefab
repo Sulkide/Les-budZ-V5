@@ -271,6 +271,7 @@ GameObject:
   - component: {fileID: 2621865372147272700}
   - component: {fileID: 2515178193365972988}
   - component: {fileID: 7596568850031189590}
+  - component: {fileID: 8982980319163873547}
   m_Layer: 11
   m_Name: Sulkide
   m_TagString: Target
@@ -357,6 +358,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5321c8855af701479cd8de405257ce9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  playerID: 0
   currentLife: 5
   gravityScale: 0
   damageCooldown: 2.5
@@ -484,6 +486,31 @@ MonoBehaviour:
   onDeactivate:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8982980319163873547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6170770998086408239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 0
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!1 &6939093540895135350
 GameObject:
   m_ObjectHideFlags: 0
@@ -777,11 +804,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2035256957379386358, guid: fbe272bc1ec3ce54f857ed3ef141091e, type: 3}
       propertyPath: m_ConnectedAnchor.x
-      value: 6.6850023
+      value: 6.6849976
       objectReference: {fileID: 0}
     - target: {fileID: 2035256957379386358, guid: fbe272bc1ec3ce54f857ed3ef141091e, type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: 0.0000035762791
+      value: 0.0000043213345
       objectReference: {fileID: 0}
     - target: {fileID: 2084079405759455113, guid: fbe272bc1ec3ce54f857ed3ef141091e, type: 3}
       propertyPath: m_Enabled
@@ -1309,7 +1336,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9109080870011882369, guid: fbe272bc1ec3ce54f857ed3ef141091e, type: 3}
       propertyPath: m_ConnectedAnchor.y
-      value: -0.000007450579
+      value: -0.000007897611
       objectReference: {fileID: 0}
     - target: {fileID: 9113727262114672733, guid: fbe272bc1ec3ce54f857ed3ef141091e, type: 3}
       propertyPath: m_IsActive
