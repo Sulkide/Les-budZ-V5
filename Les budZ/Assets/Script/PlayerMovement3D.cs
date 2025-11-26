@@ -11,7 +11,9 @@ public class PlayerMovement3D : NetworkBehaviour
 {
     [Header("Options General")] 
     public int playerID = 0;
-    public int currentLife = 5;
+    //public int currentLife = 15;
+    public float recoveryTime = 2f;
+    public float currentForce = 10f;
     public float gravityScale;
     public float damageCooldown = 2.5f;
     public RigidbodyConstraints defaultConstraints;
@@ -25,6 +27,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool alignToGroundSlope = true;
     public bool use3DMovement = true;
     public bool rotateChildOnDash = true;
+    
     public float maxAngleWithFriction = 30f;
     public bool canWallJump = true;
     public bool canDash = true;
@@ -34,6 +37,7 @@ public class PlayerMovement3D : NetworkBehaviour
     [Space(5)]
     [Header("Online")]
     public NetworkVariable<FixedString64Bytes> netAnimationState = new NetworkVariable<FixedString64Bytes>("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<int> currentLife = new NetworkVariable<int>(15, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     
     [Space(5)]
@@ -42,6 +46,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public PlayerInput playerControls;
     public GameObject baseModelPrefab;
     public Animator playerAnimator;
+    public GameObject playerModel;
     public Collider collider;
     public GameObject colliderObject;
     public Rigidbody rb;
@@ -1173,67 +1178,122 @@ public class PlayerMovement3D : NetworkBehaviour
     
     #region DAMAGE
 
-    public void GetHit(Vector3 direction, float force, int amount, float duration, float time)
+    public void GetHit(Vector3 direction, float force, int amount, float duration)
     {
         if (isRecovery) return;
+
         Knockback(direction, force);
         Damage(amount);
         Stunned(duration);
-        Recovery(time);
-        
+        Recovery();
     }
+
     
     private void Knockback(Vector3 direction, float force)
     {
         if (isRecovery) return;
+        
+        if (direction == Vector3.zero || force == 0) return;
+        
+        Vector3 dir = direction.normalized;
 
-        Vector3 dir;
-        
-        if (GameManager.instance.is3d)
+        if (!GameManager.instance.is3d)
         {
-            dir = direction;
-        }
-        else
-        {
-            dir = new Vector3(direction.x, direction.y, 0);
+            dir = new Vector3(direction.x, direction.y, 0).normalized;
         }
         
-        //envoyer le joueur dans une direction en fonction de la force d'impact
+        rb.linearVelocity = Vector3.zero;
         
+        rb.AddForce(dir * force, ForceMode.Impulse);
+        
+        cannotMove = true;
+        
+        //TweenSquish(0.25f, 0.8f, 1.2f);
     }
 
     private void Damage(int amount)
     {
         if (isRecovery) return;
+
+        ApplyDamageServerRpc(amount);
         
-        currentLife -= amount;
-        
-        if (currentLife <= 0) Death();
+    }
+
+
+    [ServerRpc(RequireOwnership = false)]
+    private void ApplyDamageServerRpc(int amount)
+    {
+        if (isRecovery) return;
+
+        currentLife.Value -= amount;
+
+        if (currentLife.Value <= 0)
+            Death();
     }
 
 
 
-    public void Stunned(float duration)
+
+    private void Stunned(float duration)
+    {
+        if (duration <= 0) return;
+
+        StartCoroutine(StunRoutine(duration));
+    }
+
+    private IEnumerator StunRoutine(float duration)
     {
         isStunned = true;
-        //ne peux pas bouger en fonction du temps
+        cannotMove = true;
+
+        SwitchAnimation("isDamage");
+
+        yield return new WaitForSeconds(duration);
+
         isStunned = false;
+        cannotMove = false;
+        
+        if (!isIdleAttcking && !isMovingAttcking && !isAirAttcking && !isStayAirAttacking)
+            SwitchAnimation("");
     }
 
-    public void Recovery(float time)
+
+    private void Recovery()
+    {
+        StartCoroutine(RecoveryRoutine());
+    }
+
+    private IEnumerator RecoveryRoutine()
     {
         isRecovery = true;
-        //ne peux pas prendre de nouveaux dégat et knockback durant le temps
+
+        float blinkTime = 0.1f;
+
+        float end = Time.time + recoveryTime;
+
+        while (Time.time < end)
+        {
+            playerModel.SetActive(false);
+            yield return new WaitForSeconds(blinkTime);
+            
+            playerModel.SetActive(true);
+            yield return new WaitForSeconds(blinkTime);
+        }
+        
+        playerModel.SetActive(true);
+
         isRecovery = false;
     }
 
+
     public void Death()
     {
+        isDead = true;
         Debug.Log("Death");
     }
     public void Respawn()
     {
-        
+        isDead = false;
     }
     
     
@@ -1347,7 +1407,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
     }
 
-    private void Jump()
+    public void Jump()
     {
         if (cannotMove) return;
 
@@ -2053,28 +2113,21 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private Transform GetModelRoot()
     {
-        // Si il n'y a pas d'enfants → on anime rien
+
         if (transform.childCount == 0)
             return transform;
-
-        // On récupère le premier enfant
+        
         Transform firstChild = transform.GetChild(0);
-
-        // 🔥 Si le premier enfant est le colliderObject → ON LE SKIP
+        
         if (colliderObject != null && firstChild == colliderObject.transform)
         {
-            // S'il y a un autre enfant on l'utilise
             if (transform.childCount > 1)
                 return transform.GetChild(1);
-        
-            // Sinon on ne tweene rien
             return null;
         }
-
-        // 🔥 Si colliderObject est dans ses sous-enfants → ON LE SKIP aussi
+        
         if (colliderObject != null)
         {
-            // On cherche un sous-child NON colliderObject
             for (int i = 0; i < firstChild.childCount; i++)
             {
                 Transform c = firstChild.GetChild(i);
@@ -2083,7 +2136,7 @@ public class PlayerMovement3D : NetworkBehaviour
             }
         }
 
-        // Sinon comportement par défaut
+       
         if (firstChild.childCount > 0)
             return firstChild.GetChild(0);
 

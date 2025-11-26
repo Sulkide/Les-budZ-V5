@@ -308,7 +308,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1f3b934c958e8c48a9d4b9955497d19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
   is3d: 1
   nextPlayerID: 1
   pauseMenu: {fileID: 315890445866374970}
@@ -345,7 +344,7 @@ MonoBehaviour:
   player2CurrentLifeSaved: 0
   player3CurrentLifeSaved: 0
   player4CurrentLifeSaved: 0
-  maxLife: 5
+  maxLife: 15
   XP: 0
   basePalier: 2000
   multiplicateur: 1

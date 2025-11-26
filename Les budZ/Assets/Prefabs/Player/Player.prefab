@@ -82,7 +82,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   ShowTopMostFoldoutHeaderGroup: 1
   playerID: 0
-  currentLife: 5
+  recoveryTime: 2
+  currentForce: 10
   gravityScale: 0
   damageCooldown: 2.5
   defaultConstraints: 0
@@ -170,10 +171,13 @@ MonoBehaviour:
         byte0059: 0
         byte0060: 0
         byte0061: 0
+  currentLife:
+    m_InternalValue: 15
   data: {fileID: 11400000, guid: b55f98cd1c891e64da9a2992c3655998, type: 2}
   playerControls: {fileID: 1836536088433505170}
   baseModelPrefab: {fileID: 0}
   playerAnimator: {fileID: 6194515940952911558}
+  playerModel: {fileID: 369927160261812951}
   collider: {fileID: 9053698826457478994}
   colliderObject: {fileID: 5076152429067282313}
   rb: {fileID: 5538446631649863441}

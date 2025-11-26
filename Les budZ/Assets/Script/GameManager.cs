@@ -79,7 +79,7 @@ public class GameManager : MonoBehaviour
     [Header("Paramètres de paliers")]
     [Tooltip("Valeur de base du premier palier (ex : 100).")]
     
-    public int maxLife = 5;
+    public int maxLife = 15;
     
     public int XP;
     
@@ -679,26 +679,26 @@ public class GameManager : MonoBehaviour
                             
             if (player1Location)
             {
-                players[0].currentLife = maxLife;
+                players[0].currentLife.Value = maxLife;
                 LevelUpFloaty.Spawn(levelUpPrefab, players[0].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
             }
                 
 
             if (player2Location)
             {
-                players[1].currentLife = maxLife;
+                players[1].currentLife.Value = maxLife;
                 LevelUpFloaty.Spawn(levelUpPrefab, players[1].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
             }
 
             if (player3Location)
             {
-                players[2].currentLife = maxLife;
+                players[2].currentLife.Value = maxLife;
                 LevelUpFloaty.Spawn(levelUpPrefab, players[2].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
             }
 
             if (player4Location)
             {
-                players[3].currentLife = maxLife;
+                players[3].currentLife.Value = maxLife;
                 LevelUpFloaty.Spawn(levelUpPrefab, players[3].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
             }
         }
