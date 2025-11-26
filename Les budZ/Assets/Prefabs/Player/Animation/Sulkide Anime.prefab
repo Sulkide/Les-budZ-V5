@@ -103,7 +103,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &527025621759907324
 GameObject:
   m_ObjectHideFlags: 0
@@ -241,7 +245,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &823930636385629926
 GameObject:
   m_ObjectHideFlags: 0
@@ -315,7 +323,7 @@ GameObject:
   - component: {fileID: 4326364263132545476}
   - component: {fileID: 8378596711842620151}
   - component: {fileID: 4790728922932854094}
-  m_Layer: 12
+  m_Layer: 11
   m_Name: stick
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -334,7 +342,8 @@ Transform:
   m_LocalPosition: {x: 5.702, y: 0.3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2957039822035974335}
   m_Father: {fileID: 3450992273777345122}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8378596711842620151
@@ -407,7 +416,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &1887184402289851389
 GameObject:
   m_ObjectHideFlags: 0
@@ -511,7 +524,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &2060940366467504400
 GameObject:
   m_ObjectHideFlags: 0
@@ -615,7 +632,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &2461242834018365741
 GameObject:
   m_ObjectHideFlags: 0
@@ -719,7 +740,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &2481060427679450915
 GameObject:
   m_ObjectHideFlags: 0
@@ -823,7 +848,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &3527468467959856425
 GameObject:
   m_ObjectHideFlags: 0
@@ -927,7 +956,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &3738930078486983481
 GameObject:
   m_ObjectHideFlags: 0
@@ -1062,7 +1095,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &4815976267224382907
 GameObject:
   m_ObjectHideFlags: 0
@@ -1104,7 +1141,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3635207356787187106}
   - component: {fileID: 4232377287943368525}
-  m_Layer: 9
+  m_Layer: 11
   m_Name: Dash collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1252,7 +1289,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &5739835225403682555
 GameObject:
   m_ObjectHideFlags: 0
@@ -1356,7 +1397,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &6044467308853322380
 GameObject:
   m_ObjectHideFlags: 0
@@ -1461,7 +1506,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!114 &5959829191292312501
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1474,7 +1523,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &6268389612981273730
 GameObject:
   m_ObjectHideFlags: 0
@@ -1579,7 +1632,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &6335751460113914895
 GameObject:
   m_ObjectHideFlags: 0
@@ -1684,7 +1741,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!114 &1167817906976537042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1697,7 +1758,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
+--- !u!1 &6448925914149763730
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2957039822035974335}
+  - component: {fileID: 4898098361852592453}
+  m_Layer: 11
+  m_Name: Capsule
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2957039822035974335
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6448925914149763730}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.26, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6986615601109045407}
+  m_Father: {fileID: 4326364263132545476}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &4898098361852592453
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6448925914149763730}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 47.481308
+  m_Direction: 1
+  m_Center: {x: -0.0000012226237, y: -4.977094, z: 0}
 --- !u!1 &6684878054193803967
 GameObject:
   m_ObjectHideFlags: 0
@@ -1928,7 +2049,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &7704530131603104473
 GameObject:
   m_ObjectHideFlags: 0
@@ -2085,7 +2210,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &8050688433041774578
 GameObject:
   m_ObjectHideFlags: 0
@@ -2189,7 +2318,64 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
+--- !u!1 &8205321427691452319
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6986615601109045407}
+  - component: {fileID: 3312556054431482458}
+  m_Layer: 11
+  m_Name: Cube
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6986615601109045407
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8205321427691452319}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 18.2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2957039822035974335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3312556054431482458
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8205321427691452319}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 10.003679, y: 11.322272, z: 1}
+  m_Center: {x: -0.017404485, y: 5.161132, z: 0}
 --- !u!1 &8833607541535160788
 GameObject:
   m_ObjectHideFlags: 0
@@ -2293,7 +2479,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1 &8943646640153218123
 GameObject:
   m_ObjectHideFlags: 0
@@ -2397,7 +2587,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cloneMesheRotationOffset: {x: 0, y: 0, z: 0.15}
+  parentSpriteRenderer: {fileID: 0}
+  childName: ChildSprite
+  sortingOrderOffset: -1
+  overrideMaterial: 0
+  childMaterialOverride: {fileID: 0}
 --- !u!1001 &4241483217492683750
 PrefabInstance:
   m_ObjectHideFlags: 0

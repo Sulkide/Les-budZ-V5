@@ -103,6 +103,8 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool isGroundSliding { get; private set; }
     public bool isDashRefilling { get; private set; }
     public bool isDashAttacking { get; private set; }
+    public bool isStunned { get; private set; }
+    public bool isRecovery {get; private set;}
     public bool fixedLastOnGroundTime { get; private set; }
     public bool isGrappling { get; private set; }
     public bool isGroundedNow { get; private set; }
@@ -757,6 +759,7 @@ public class PlayerMovement3D : NetworkBehaviour
             if (!isAirAttcking && !isStayAirAttacking)
             {
                 SwitchAnimation("isFalling");
+                isFalling = true;
             }
         }
 
@@ -895,6 +898,7 @@ public class PlayerMovement3D : NetworkBehaviour
             !isAirAttcking && !isStayAirAttacking)
         {
             SwitchAnimation("isFalling");
+            isFalling = true;
         }
     }
 
@@ -1165,6 +1169,74 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
+    #endregion
+    
+    #region DAMAGE
+
+    public void GetHit(Vector3 direction, float force, int amount, float duration, float time)
+    {
+        if (isRecovery) return;
+        Knockback(direction, force);
+        Damage(amount);
+        Stunned(duration);
+        Recovery(time);
+        
+    }
+    
+    private void Knockback(Vector3 direction, float force)
+    {
+        if (isRecovery) return;
+
+        Vector3 dir;
+        
+        if (GameManager.instance.is3d)
+        {
+            dir = direction;
+        }
+        else
+        {
+            dir = new Vector3(direction.x, direction.y, 0);
+        }
+        
+        //envoyer le joueur dans une direction en fonction de la force d'impact
+        
+    }
+
+    private void Damage(int amount)
+    {
+        if (isRecovery) return;
+        
+        currentLife -= amount;
+        
+        if (currentLife <= 0) Death();
+    }
+
+
+
+    public void Stunned(float duration)
+    {
+        isStunned = true;
+        //ne peux pas bouger en fonction du temps
+        isStunned = false;
+    }
+
+    public void Recovery(float time)
+    {
+        isRecovery = true;
+        //ne peux pas prendre de nouveaux dégat et knockback durant le temps
+        isRecovery = false;
+    }
+
+    public void Death()
+    {
+        Debug.Log("Death");
+    }
+    public void Respawn()
+    {
+        
+    }
+    
+    
     #endregion
 
     #region MOVEMENT
@@ -1694,10 +1766,12 @@ public class PlayerMovement3D : NetworkBehaviour
 
     #endregion
 
-    #region COLLISION SLOPE ALIGN & FRICTION
+    #region COLLISION & FRICTION
+    
 
     private void OnCollisionEnter(Collision collision)
     {
+        
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
         if (collision.contactCount == 0) return;
@@ -1821,8 +1895,7 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-
-
+    
     #region GROUND CALLBACKS
 
     private void TouchGround()
@@ -1886,6 +1959,7 @@ public class PlayerMovement3D : NetworkBehaviour
         isWallJumping = false;
         isJumpCut = false;
         isJumpFalling = false;
+        isFalling = false;
 
         TweenBounce();
     }
@@ -1908,8 +1982,6 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     #endregion
-
-  
 
     #region GIZMOS
     private void OnDrawGizmos()
