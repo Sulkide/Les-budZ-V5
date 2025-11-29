@@ -107,6 +107,8 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool isJumpFalling { get; private set; }
     public bool isGroundSliding { get; private set; }
     public bool isDashRefilling { get; private set; }
+    
+    public bool dashCancelledExternally { get; private set; }
     public bool isDashAttacking { get; private set; }
     public bool isStunned { get; private set; }
     public bool isRecovery {get; private set;}
@@ -439,7 +441,7 @@ public class PlayerMovement3D : NetworkBehaviour
         
         ApplyCustomGravity();
 
-        if (cannotMove || isDead) return;
+        if (isDead) return;
 
         if (GameManager.instance.is3d)
             HandleMovement3D();
@@ -607,7 +609,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void ApplyCustomGravity()
     {
-        if (data == null || isSliding || isDashing || isDashAttacking || isGroundPounding)
+        if (data == null || isSliding || isDashing || isDashAttacking || isGroundPounding || isStunned)
             return;
 
         float baseGravity = data.gravityScale;
@@ -816,61 +818,53 @@ public class PlayerMovement3D : NetworkBehaviour
     }
     
     private void HandleGlideState()
-{
-    if (!canGlide || data == null || rb == null) return;
-
-    bool grounded = lastOnGroundTime > 0f;
-
-    // Si on touche le sol, on reset tout ce qui concerne le glide
-    if (grounded)
     {
-        if (isGliding)
-            StopGlide();
+        if (!canGlide || data == null || rb == null) return;
 
-        glideRequested = false;
-        return;
-    }
-
-    // États qui empêchent le glide
-    if (isDashing || isDashAttacking || isGroundPounding || isStayAirAttacking || cannotMove)
-    {
-        if (isGliding)
-            StopGlide();
-        glideRequested = false;
-        return;
-    }
-
-    // Si on est déjà en train de planer
-    if (isGliding)
-    {
-        // On arrête de planer si on relâche Jump
-        if (jumpAction == null || !jumpAction.IsPressed())
+        bool grounded = lastOnGroundTime > 0f;
+        
+        if (grounded)
         {
-            StopGlide();
+            if (isGliding)
+                StopGlide();
+
+            glideRequested = false;
+            return;
         }
 
-        return;
+
+        if (isDashing || isDashAttacking || isGroundPounding || isStayAirAttacking || cannotMove)
+        {
+            if (isGliding)
+                StopGlide();
+            glideRequested = false;
+            return;
+        }
+
+        if (isGliding)
+        {
+            if (jumpAction == null || !jumpAction.IsPressed())
+            {
+                StopGlide();
+            }
+
+            return;
+        }
+        
+        if (!glideRequested)
+            return;
+        
+        if (rb.linearVelocity.y >= 0f)
+            return;
+
+        if (jumpAction == null || !jumpAction.IsPressed())
+        {
+            glideRequested = false;
+            return;
+        }
+
+        StartGlide();
     }
-
-    // On n'est pas encore en glide, on regarde si on doit le lancer
-    if (!glideRequested)
-        return;
-
-    // On ne plane que si on est vraiment en train de tomber (vitesse Y < 0)
-    if (rb.linearVelocity.y >= 0f)
-        return;
-
-    // Il faut maintenir la touche (pas juste un tap)
-    if (jumpAction == null || !jumpAction.IsPressed())
-    {
-        // Tap trop court : on annule la demande, il faudra ré-appuyer
-        glideRequested = false;
-        return;
-    }
-
-    // Toutes les conditions sont OK, on commence à planer
-    StartGlide();
-}
 
     private void StartGlide()
     {
@@ -962,6 +956,7 @@ public class PlayerMovement3D : NetworkBehaviour
         isJumping = false;
         isWallJumping = false;
         isJumpCut = false;
+        dashCancelledExternally = false;
 
         StartCoroutine(StartDash(lastDashDir));
 
@@ -1181,39 +1176,18 @@ public class PlayerMovement3D : NetworkBehaviour
     public void GetHit(Vector3 direction, float force, int amount, float duration)
     {
         if (isRecovery) return;
-
-        Knockback(direction, force);
+        
         Damage(amount);
         Stunned(duration);
-        Recovery();
-    }
-
-    
-    private void Knockback(Vector3 direction, float force)
-    {
-        if (isRecovery) return;
-        
-        if (direction == Vector3.zero || force == 0) return;
-        
-        Vector3 dir = direction.normalized;
-
-        if (!GameManager.instance.is3d)
-        {
-            dir = new Vector3(direction.x, direction.y, 0).normalized;
-        }
-        
-        rb.linearVelocity = Vector3.zero;
-        
-        rb.AddForce(dir * force, ForceMode.Impulse);
-        
-        cannotMove = true;
-        
-        //TweenSquish(0.25f, 0.8f, 1.2f);
+        Knockback(direction, force);
+        Recovery(!(amount <=0));
     }
 
     private void Damage(int amount)
     {
         if (isRecovery) return;
+        
+        if (amount == 0) return;
 
         ApplyDamageServerRpc(amount);
         
@@ -1224,8 +1198,13 @@ public class PlayerMovement3D : NetworkBehaviour
     private void ApplyDamageServerRpc(int amount)
     {
         if (isRecovery) return;
-
+        
+        CancelDash();
+        
+        int oldLife = currentLife.Value;
         currentLife.Value -= amount;
+        Debug.Log($"[SERVER] {name} prend {amount} dégâts : {oldLife} → {currentLife.Value}");
+
 
         if (currentLife.Value <= 0)
             Death();
@@ -1243,28 +1222,33 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private IEnumerator StunRoutine(float duration)
     {
-        isStunned = true;
-        cannotMove = true;
+        if (duration == 0) yield break;
+        
+        cannotMove = true; 
+        isStunned = true; 
 
         SwitchAnimation("isDamage");
 
         yield return new WaitForSeconds(duration);
+        
+        cannotMove = false; 
+        isStunned = false; 
 
-        isStunned = false;
-        cannotMove = false;
         
         if (!isIdleAttcking && !isMovingAttcking && !isAirAttcking && !isStayAirAttacking)
             SwitchAnimation("");
     }
 
 
-    private void Recovery()
+    private void Recovery(bool isHurt)
     {
+        if (!isHurt) return;
         StartCoroutine(RecoveryRoutine());
     }
 
     private IEnumerator RecoveryRoutine()
     {
+        
         isRecovery = true;
 
         float blinkTime = 0.1f;
@@ -1304,6 +1288,9 @@ public class PlayerMovement3D : NetworkBehaviour
     private void HandleMovement2D()
     {
         if (data == null) return;
+        if (cannotMove) return;
+        if (isStunned) return;
+
 
         float currentVelX = rb.linearVelocity.x;
         float desiredSpeed = targetSpeed;
@@ -1359,6 +1346,9 @@ public class PlayerMovement3D : NetworkBehaviour
     private void HandleMovement3D()
     {
         if (data == null) return;
+        if (cannotMove) return; 
+        if (isStunned) return;
+
 
         Vector3 inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
         Vector3 horizontalVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
@@ -1425,6 +1415,47 @@ public class PlayerMovement3D : NetworkBehaviour
 
         rb.AddForce(Vector3.up * force, ForceMode.Impulse);
     }
+    
+    public void Bump(float multiplier = 0.1f)
+    {
+        if (multiplier <= 0f)
+            multiplier = 1f;
+        
+        RequestBumpServerRpc(multiplier);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestBumpServerRpc(float multiplier)
+    {
+        BumpOwnerClientRpc(multiplier);
+    }
+
+    [ClientRpc]
+    private void BumpOwnerClientRpc(float multiplier)
+    {
+        if (!IsOwner) return;
+
+        ApplyBump(multiplier);
+    }
+
+    private void ApplyBump(float multiplier)
+    {
+        if (data == null || rb == null) return;
+        
+        float force = data.jumpForce * multiplier;
+        
+        rb.linearVelocity = Vector3.zero;
+        
+        lastPressedJumpTime = 0f;
+        lastOnGroundTime   = 0f;
+        
+        SwitchAnimation("isJumping");
+        
+        rb.AddForce(Vector3.up * force, ForceMode.Impulse);
+        
+        Debug.Log("Player " + playerID + " has Bump " + force);
+    }
+
 
     private void WallJump(int dir)
     {
@@ -1470,7 +1501,7 @@ public class PlayerMovement3D : NetworkBehaviour
         vel.z = 0f;
         rb.linearVelocity = vel;
     }
-
+    
     IEnumerator StartDash(Vector3 dir)
     {
         if (!canDash || data == null)
@@ -1478,10 +1509,9 @@ public class PlayerMovement3D : NetworkBehaviour
             isDashing = false;
             yield break;
         }
-        
+
         if (isGliding)
             StopGlide();
-        
 
         SwitchAnimation("isDashing");
 
@@ -1499,7 +1529,6 @@ public class PlayerMovement3D : NetworkBehaviour
             childOriginalRotation = dashChild.localRotation;
         }
 
-
         Tween stretchTween = null;
         if (dashChild != null)
         {
@@ -1510,9 +1539,9 @@ public class PlayerMovement3D : NetworkBehaviour
                 startScale.y * dashCompressFactor,
                 startScale.z
             );
-            
+
             Vector2 animInput = moveInput;
-            
+
             if (!isFacingRight)
             {
                 animInput.x *= -1f;
@@ -1561,15 +1590,10 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         float currentAlongDash = Vector3.Dot(rb.linearVelocity, dashDir);
-        
         float targetDashSpeed = currentAlongDash + data.dashSpeed;
-        
         targetDashSpeed = Mathf.Clamp(targetDashSpeed, data.dashSpeed, data.dashMaxSpeed);
-
-
-     
         
-        while (Time.time - startTime <= data.dashAttackTime)
+        while (!dashCancelledExternally && Time.time - startTime <= data.dashAttackTime)
         {
             if (jumpAction != null && jumpAction.WasPressedThisFrame())
             {
@@ -1578,11 +1602,10 @@ public class PlayerMovement3D : NetworkBehaviour
             }
 
             Vector3 vel = rb.linearVelocity;
-            
+
             float currentAlongNow = Vector3.Dot(vel, dashDir);
-            
             Vector3 velPerp = vel - dashDir * currentAlongNow;
-            
+
             Vector3 dashVel = dashDir * targetDashSpeed;
 
             rb.linearVelocity = velPerp + dashVel;
@@ -1590,7 +1613,6 @@ public class PlayerMovement3D : NetworkBehaviour
             yield return null;
         }
 
-        
         if (stretchTween != null && stretchTween.IsActive())
             stretchTween.Kill();
         if (dashChild != null)
@@ -1601,7 +1623,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         isDashAttacking = false;
         
-        if (rb.linearVelocity.y > 0f)
+        if (!dashCancelledExternally && rb.linearVelocity.y > 0f)
         {
             Vector3 vel = rb.linearVelocity;
             vel.y *= 0.42f;
@@ -1611,7 +1633,25 @@ public class PlayerMovement3D : NetworkBehaviour
         SetGravityScale(data.gravityScale);
 
         isDashing = false;
+        dashCancelledExternally = false; 
     }
+
+    
+    
+    public void CancelDash()
+    {
+        if (!isDashing && !isDashAttacking)
+            return;
+        
+        dashCancelledExternally = true;
+        
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+        }
+    }
+
+    
 
     private IEnumerator StartGroundPound()
     {
@@ -1822,6 +1862,54 @@ public class PlayerMovement3D : NetworkBehaviour
 
         SwitchAnimation("isStayAttack");
     }
+    
+
+    private void Knockback(Vector3 dir, float force)
+    {
+        if (isRecovery) return;
+
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = transform.forward;
+
+        if (GameManager.instance != null && !GameManager.instance.is3d)
+        {
+            dir = new Vector3(dir.x, dir.y, 0);
+        }
+        
+        dir = dir.normalized;
+
+        RequestKnockbackServerRpc(dir, force);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestKnockbackServerRpc(Vector3 dir, float force)
+    {
+        KnockbackOwnerClientRpc(dir, force);
+    }
+
+    [ClientRpc]
+    private void KnockbackOwnerClientRpc(Vector3 dir, float force)
+    {
+        if (!IsOwner) return;
+
+        ApplyKnockback(dir, force);
+    }
+
+    private void ApplyKnockback(Vector3 dir, float force)
+    {
+        if (rb == null) return;
+        
+        rb.linearVelocity = Vector3.zero;
+        rb.AddForce(dir * force, ForceMode.Impulse);
+    }
+
+
+
+
+
+    
+ 
+
 
 
     #endregion
@@ -1839,6 +1927,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionStay(Collision collision)
     {
+        if (isStunned) return;
+        
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
         if (collision.contactCount == 0) return;
@@ -1887,6 +1977,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionExit(Collision collision)
     {
+        if (isStunned) return;
+        
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0)
             return;
 
