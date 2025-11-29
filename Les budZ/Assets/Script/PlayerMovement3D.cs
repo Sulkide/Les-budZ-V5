@@ -23,6 +23,9 @@ public class PlayerMovement3D : NetworkBehaviour
     public Vector3 capsuleSize;
     public Vector3 capsuleCenter;
     public Vector3 originalScale;
+    public Transform visualRoot;
+    public Vector3 visualRootDefaultLocalPos;
+    public Vector3 visualRootDefaultLocalScale;
     public bool deactivateOnOffScreen;
     public bool alignToGroundSlope = true;
     public bool use3DMovement = true;
@@ -112,11 +115,13 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool isDashAttacking { get; private set; }
     public bool isStunned { get; private set; }
     public bool isRecovery {get; private set;}
+    public bool visualRootDefaultsInitialized {get; private set;}
     public bool fixedLastOnGroundTime { get; private set; }
     public bool isGrappling { get; private set; }
     public bool isGroundedNow { get; private set; }
     public int lastWallJumpDir { get; private set; }
     public int dashesLeft { get; private set; }
+    public int currentAttackInstanceId { get; private set; }
     public float targetSpeed { get; private set; }
     public float wallJumpStartTime { get; private set; }
     public float lastOnGroundTime { get; private set; }
@@ -191,13 +196,12 @@ public class PlayerMovement3D : NetworkBehaviour
 
     void Start()
     {
-        if (rb != null) rb.useGravity = false; // on gère la gravité à la main
+        if (rb != null) rb.useGravity = false;
         gameObject.layer = LayerMask.NameToLayer("Player");
         capsuleSize = collider.bounds.size;
         capsuleCenter = collider.bounds.center;
 
- 
-        // Gravité "par défaut" venant des PlayerData
+        
         if (data != null)
             SetGravityScale(data.gravityScale);
 
@@ -205,7 +209,17 @@ public class PlayerMovement3D : NetworkBehaviour
         cam = Camera.main;
         originalScale = transform.localScale;
 
-
+        if (visualRoot == null)
+        {
+            Transform child0 = transform.childCount > 0 ? transform.GetChild(0) : null;
+            if (child0 != null && child0.childCount > 0)
+                visualRoot = child0.GetChild(0);
+        }
+        if (visualRoot != null)
+        {
+            visualRootDefaultLocalPos   = visualRoot.localPosition;
+            visualRootDefaultLocalScale = visualRoot.localScale;
+        }
 
         if (data != null)
         {
@@ -609,7 +623,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void ApplyCustomGravity()
     {
-        if (data == null || isSliding || isDashing || isDashAttacking || isGroundPounding || isStunned)
+        if (data == null || isSliding || isDashing || isDashAttacking || isGroundPounding)
             return;
 
         float baseGravity = data.gravityScale;
@@ -1175,11 +1189,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
     public void GetHit(Vector3 direction, float force, int amount, float duration)
     {
+        
+        Knockback(direction, force);
+        
         if (isRecovery) return;
         
         Damage(amount);
         Stunned(duration);
-        Knockback(direction, force);
         Recovery(!(amount <=0));
     }
 
@@ -1201,9 +1217,7 @@ public class PlayerMovement3D : NetworkBehaviour
         
         CancelDash();
         
-        int oldLife = currentLife.Value;
         currentLife.Value -= amount;
-        Debug.Log($"[SERVER] {name} prend {amount} dégâts : {oldLife} → {currentLife.Value}");
 
 
         if (currentLife.Value <= 0)
@@ -1227,7 +1241,7 @@ public class PlayerMovement3D : NetworkBehaviour
         cannotMove = true; 
         isStunned = true; 
 
-        SwitchAnimation("isDamage");
+        SwitchAnimation("isDamaged");
 
         yield return new WaitForSeconds(duration);
         
@@ -1242,32 +1256,54 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Recovery(bool isHurt)
     {
+
         if (!isHurt) return;
-        StartCoroutine(RecoveryRoutine());
+        if (isRecovery) return; 
+
+        RequestRecoveryServerRpc();
     }
 
     private IEnumerator RecoveryRoutine()
     {
-        
+        if (isRecovery)
+            yield break;
+
         isRecovery = true;
 
         float blinkTime = 0.1f;
-
         float end = Time.time + recoveryTime;
 
         while (Time.time < end)
         {
-            playerModel.SetActive(false);
+            if (playerModel != null)
+                playerModel.SetActive(false);
             yield return new WaitForSeconds(blinkTime);
-            
-            playerModel.SetActive(true);
+
+            if (playerModel != null)
+                playerModel.SetActive(true);
             yield return new WaitForSeconds(blinkTime);
         }
-        
-        playerModel.SetActive(true);
+
+        if (playerModel != null)
+            playerModel.SetActive(true);
 
         isRecovery = false;
     }
+
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestRecoveryServerRpc()
+    {
+        StartRecoveryClientRpc();
+    }
+
+    [ClientRpc]
+    private void StartRecoveryClientRpc()
+    {
+        if (isRecovery) return;
+        StartCoroutine(RecoveryRoutine());
+    }
+
 
 
     public void Death()
@@ -1449,7 +1485,7 @@ public class PlayerMovement3D : NetworkBehaviour
         lastPressedJumpTime = 0f;
         lastOnGroundTime   = 0f;
         
-        SwitchAnimation("isJumping");
+        SwitchAnimation("isFalling");
         
         rb.AddForce(Vector3.up * force, ForceMode.Impulse);
         
@@ -1510,6 +1546,8 @@ public class PlayerMovement3D : NetworkBehaviour
             yield break;
         }
 
+        StartNewAttackInstance();
+        
         if (isGliding)
             StopGlide();
 
@@ -1658,6 +1696,8 @@ public class PlayerMovement3D : NetworkBehaviour
         if (GameManager.instance != null && GameManager.instance.is3d)
             yield break;
         
+        StartNewAttackInstance();
+        
         if (isGliding)
             StopGlide();
 
@@ -1706,11 +1746,20 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-
+    public void StartNewAttackInstance()
+    {
+        if (currentAttackInstanceId == int.MaxValue)
+            currentAttackInstanceId = 1;
+        else
+            currentAttackInstanceId++;
+    }
+    
     private void StartIdleAttack()
     {
         if (data == null) return;
 
+        StartNewAttackInstance();
+        
         isIdleAttcking = true;
         isMovingAttcking = false;
         isAirAttcking = false;
@@ -1796,6 +1845,8 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (data == null) return;
 
+        StartNewAttackInstance();
+        
         isIdleAttcking = false;
         isMovingAttcking = true;
         isAirAttcking = false;
@@ -1818,6 +1869,8 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (data == null) return;
 
+        StartNewAttackInstance();
+        
         if (isGliding)
             StopGlide();
         
@@ -1835,6 +1888,8 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (data == null) return;
 
+        StartNewAttackInstance();
+        
         if (isGliding)
             StopGlide();
         
@@ -1866,8 +1921,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Knockback(Vector3 dir, float force)
     {
-        if (isRecovery) return;
-
+        if (isStunned) return;
+        
         if (dir.sqrMagnitude < 0.0001f)
             dir = transform.forward;
 
@@ -2001,7 +2056,7 @@ public class PlayerMovement3D : NetworkBehaviour
         playerAnimator.SetBool("isJumping", false);
         playerAnimator.SetBool("isFalling", false);
         playerAnimator.SetBool("isSliding", false);
-        playerAnimator.SetBool("isDamage", false);
+        playerAnimator.SetBool("isDamaged", false);
         playerAnimator.SetBool("isDashing", false);
         playerAnimator.SetBool("isCAC", false);
         playerAnimator.SetBool("isPuching", false);
@@ -2113,7 +2168,7 @@ public class PlayerMovement3D : NetworkBehaviour
         isJumpFalling = false;
         isFalling = false;
 
-        TweenBounce();
+        TriggerLandBounceFX();
     }
 
 
@@ -2129,7 +2184,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         glideRequested = false;
 
-        TweenStretch(new Vector3(0.9f, 1.1f, 1f), 0.2f);
+        TriggerStretchFX(new Vector3(0.9f, 1.1f, 1f), 0.2f);
     }
 
 
@@ -2234,102 +2289,162 @@ public class PlayerMovement3D : NetworkBehaviour
 
         return firstChild;
     }
-
-
-    public Tween TweenSquish(float duration = 0.5f, float squishX = 0.9f, float stretchY = 1.1f)
-    {
-        Transform model = GetModelRoot();
-        if (model == null) return null;
-
-        Sequence seq = DOTween.Sequence();
-
-        seq.Append(model.DOScale(
-                new Vector3(
-                    originalScale.x * squishX,
-                    originalScale.y * stretchY,
-                    originalScale.z),
-                duration * 0.5f
-            )
-            .SetEase(Ease.OutElastic));
-
-        seq.Append(model.DOScale(
-                originalScale,
-                duration * 0.5f
-            )
-            .SetEase(Ease.OutElastic));
-
-        return seq.Play();
-    }
+    
 
     public Tween TweenBounce(float squishDuration = 0.1f, float recoverDuration = 0.4f)
     {
-        Transform model = GetModelRoot();
-        if (model == null) return null;
+        if (visualRoot == null) return null;
+
+        EnsureVisualRootDefaults();
+        
+        visualRoot.DOKill(true);
 
         Sequence seq = DOTween.Sequence();
-
-        Vector3 startScale = originalScale;
-        Vector3 squishScale = new Vector3(1.7f, 0.5f, 1f);
-
-        float offsetY = (startScale.y - squishScale.y) * 0.5f;
-
-        Vector3 startPos = model.localPosition;
-        Vector3 squishPos = startPos - new Vector3(0f, offsetY, 0f);
         
+        Vector3 baseScale = visualRootDefaultLocalScale;
+        Vector3 basePos   = visualRootDefaultLocalPos;
+
+        visualRoot.localScale    = baseScale;
+        visualRoot.localPosition = basePos;
+
+        Vector3 squishScale = new Vector3(
+            baseScale.x * 1.7f,
+            baseScale.y * 0.5f,
+            baseScale.z
+        );
+
+        float offsetY = (baseScale.y - squishScale.y) * 0.5f;
+        Vector3 squishPos = basePos - new Vector3(0f, offsetY, 0f);
+
         seq.Append(
-            model.DOScale(squishScale, squishDuration).SetEase(Ease.OutQuad)
+            visualRoot.DOScale(squishScale, squishDuration).SetEase(Ease.OutQuad)
         );
         seq.Join(
-            model.DOLocalMove(squishPos, squishDuration).SetEase(Ease.OutQuad)
+            visualRoot.DOLocalMove(squishPos, squishDuration).SetEase(Ease.OutQuad)
         );
-        
+
         seq.Append(
-            model.DOScale(startScale, recoverDuration).SetEase(Ease.OutElastic, 2f)
+            visualRoot.DOScale(baseScale, recoverDuration).SetEase(Ease.OutElastic, 2f)
         );
         seq.Join(
-            model.DOLocalMove(startPos, recoverDuration).SetEase(Ease.OutElastic, 2f)
+            visualRoot.DOLocalMove(basePos, recoverDuration).SetEase(Ease.OutElastic, 2f)
         );
+
+        seq.OnComplete(() =>
+        {
+            visualRoot.localScale    = baseScale;
+            visualRoot.localPosition = basePos;
+        });
 
         return seq.Play();
     }
+
+
+    
+    private void TriggerLandBounceFX()
+    {
+
+        TweenBounce();
+        
+        if (IsOwner)
+        {
+            TriggerLandBounceFXServerRpc();
+        }
+    }
+
+    [ServerRpc(RequireOwnership = true)]
+    private void TriggerLandBounceFXServerRpc()
+    {
+        TriggerLandBounceFXClientRpc();
+    }
+
+    [ClientRpc]
+    private void TriggerLandBounceFXClientRpc()
+    {
+        if (IsOwner) return;
+
+        TweenBounce();
+    }
+
 
 
     public Tween TweenStretch(Vector3 stretchFactors, float duration = 0.2f, Ease ease = Ease.Linear)
     {
-        Transform model = GetModelRoot();
-        if (model == null) return null;
+        if (visualRoot == null) return null;
 
-        Vector3 startScale = model.localScale;
-        Vector3 targetScale = new Vector3(
-            startScale.x * stretchFactors.x,
-            startScale.y * stretchFactors.y,
-            startScale.z * stretchFactors.z);
+        EnsureVisualRootDefaults();
+
+        visualRoot.DOKill(true);
 
         Sequence seq = DOTween.Sequence();
 
-        seq.Append(model.DOScale(targetScale, duration * 0.5f).SetEase(ease));
+        Vector3 baseScale = visualRootDefaultLocalScale;
+        Vector3 basePos   = visualRootDefaultLocalPos;
 
-        seq.Append(model.DOScale(startScale, duration * 0.5f).SetEase(ease));
+        visualRoot.localScale    = baseScale;
+        visualRoot.localPosition = basePos;
+
+        Vector3 targetScale = new Vector3(
+            baseScale.x * stretchFactors.x,
+            baseScale.y * stretchFactors.y,
+            baseScale.z * stretchFactors.z
+        );
+
+        seq.Append(
+            visualRoot.DOScale(targetScale, duration * 0.5f).SetEase(ease)
+        );
+
+        seq.Append(
+            visualRoot.DOScale(baseScale, duration * 0.5f).SetEase(ease)
+        );
+
+        seq.OnComplete(() =>
+        {
+            visualRoot.localScale    = baseScale;
+            visualRoot.localPosition = basePos;
+        });
 
         return seq.Play();
     }
 
-    public Tween TweenRotate360Y(float duration = 0.5f, Ease ease = Ease.Linear)
+
+
+    public void TriggerStretchFX(Vector3 stretchFactors, float duration = 0.2f, Ease ease = Ease.Linear)
     {
-        Transform model = GetModelRoot();
-        if (model == null) return null;
-
-        int dir = UnityEngine.Random.Range(0, 2) == 0 ? -1 : 1;
-
-        return model
-            .DOLocalRotate(
-                new Vector3(0f, 360f * dir, 0f),
-                duration,
-                RotateMode.FastBeyond360
-            )
-            .SetEase(ease)
-            .OnComplete(() => model.localEulerAngles = Vector3.zero);
+        TweenStretch(stretchFactors, duration, ease);
+        
+        if (IsOwner)
+        {
+            TriggerStretchFXServerRpc(stretchFactors, duration, ease);
+        }
     }
+
+    [ServerRpc(RequireOwnership = true)]
+    public void TriggerStretchFXServerRpc(Vector3 stretchFactors, float duration, Ease ease)
+    {
+        TriggerStretchFXClientRpc(stretchFactors, duration, ease);
+    }
+
+    [ClientRpc]
+    public void TriggerStretchFXClientRpc(Vector3 stretchFactors, float duration, Ease ease)
+    {
+        if (IsOwner) return;
+
+        TweenStretch(stretchFactors, duration, ease);
+    }
+
+    private void EnsureVisualRootDefaults()
+    {
+        if (visualRoot == null) return;
+        if (visualRootDefaultsInitialized) return;
+
+        visualRootDefaultLocalPos   = visualRoot.localPosition;
+        visualRootDefaultLocalScale = visualRoot.localScale;
+        visualRootDefaultsInitialized = true;
+    }
+
+
+
 
     #endregion
 }
