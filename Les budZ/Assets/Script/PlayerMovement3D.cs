@@ -106,6 +106,10 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool isAirAttcking { get; private set; }
     public bool isMovingAttcking { get; private set; }
     public bool isIdleAttcking { get; private set; }
+    public bool isIdleAttackStopping { get; private set; }  
+    public float idleAttackStartTime { get; private set; }  
+    public float idleAttackStopStartTime { get; private set; } 
+    private bool idleAttackReleaseQueued; 
     public bool isJumpCut { get; private set; }
     public bool isJumpFalling { get; private set; }
     public bool isGroundSliding { get; private set; }
@@ -353,6 +357,8 @@ public class PlayerMovement3D : NetworkBehaviour
     
     public override void OnNetworkSpawn()
     {
+        netAnimationState.OnValueChanged += OnAnimationChanged;
+
         if (IsOwner)
         {
             playerControls.enabled = true;
@@ -361,14 +367,13 @@ public class PlayerMovement3D : NetworkBehaviour
         }
         else
         {
-            netAnimationState.OnValueChanged += OnAnimationChanged;
             playerControls.enabled = false;
             playerControls.actions.Disable();
             rb.isKinematic = true;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
-
     }
+
 
     private void Update()
     {
@@ -503,13 +508,20 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnAttackReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!IsOwner) return;
+
         if (isStayAirAttacking)
         {
             isStayAirAttacking = false;
             SwitchAnimation("");
         }
+        
+        if (isIdleAttcking)
+        {
+            idleAttackReleaseQueued = true;
+        }
     }
+
 
     private void OnAttackPressed(InputAction.CallbackContext obj)
     {
@@ -581,7 +593,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!IsOwner)return;
         if (isGliding)
         {
-            StopGlide();
+            CancelGlide();
         }
 
         if (CanJumpCut())
@@ -749,6 +761,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleFacing()
     {
+        if (isIdleAttcking || isIdleAttackStopping || isGroundPounding) return;
+        if (!GameManager.instance.is3d && isMovingAttcking)return;
         if (moveInput.x > 0.01f)
             CheckDirectionToFace(true);
         else if (moveInput.x < -0.01f)
@@ -772,6 +786,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleJumpState()
     {
+        if (isStunned) return;
         if (isJumping && rb.linearVelocity.y < 0f)
         {
             isJumping = false;
@@ -840,7 +855,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (grounded)
         {
             if (isGliding)
-                StopGlide();
+                CancelGlide();
 
             glideRequested = false;
             return;
@@ -850,7 +865,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isDashing || isDashAttacking || isGroundPounding || isStayAirAttacking || cannotMove)
         {
             if (isGliding)
-                StopGlide();
+                CancelGlide();
             glideRequested = false;
             return;
         }
@@ -859,7 +874,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             if (jumpAction == null || !jumpAction.IsPressed())
             {
-                StopGlide();
+                CancelGlide();
             }
 
             return;
@@ -899,7 +914,7 @@ public class PlayerMovement3D : NetworkBehaviour
         SwitchAnimation("isGliding");
     }
 
-    private void StopGlide()
+    private void CancelGlide()
     {
         if (!isGliding) return;
 
@@ -994,11 +1009,19 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleAttackState()
     {
-        if ((isIdleAttcking || isMovingAttcking) && Time.time >= attackStateEndTime)
+        if (isStunned) return;
+        
+        HandleIdleAttackHoldState();
+        
+        if (isMovingAttcking && Time.time >= attackStateEndTime)
         {
-            isIdleAttcking = false;
             isMovingAttcking = false;
-            SwitchAnimation("");
+
+            if (!isIdleAttcking && !isIdleAttackStopping &&
+                !isAirAttcking && !isStayAirAttacking)
+            {
+                SwitchAnimation("");
+            }
         }
 
         if (isAirAttcking && Time.time >= attackStateEndTime)
@@ -1011,10 +1034,15 @@ public class PlayerMovement3D : NetworkBehaviour
             }
             else
             {
-                SwitchAnimation("");
+                if (!isIdleAttcking && !isIdleAttackStopping &&
+                    !isMovingAttcking && !isStayAirAttacking)
+                {
+                    SwitchAnimation("");
+                }
             }
         }
     }
+
 
     private void HandleStayAirAttackMovement()
     {
@@ -1079,6 +1107,42 @@ public class PlayerMovement3D : NetworkBehaviour
         }
     }
 
+    private void HandleIdleAttackHoldState()
+    {
+        if (!isIdleAttcking && !isIdleAttackStopping)
+            return;
+        
+        if (isIdleAttcking)
+        {
+            bool minHoldElapsed = Time.time >= idleAttackStartTime + data.idleAttackMinHoldTime;
+            
+            bool attackReleasedNow = idleAttackReleaseQueued || (attackAction != null && !attackAction.IsPressed());
+            
+            if (minHoldElapsed && attackReleasedNow)
+            {
+                isIdleAttcking = false;
+                idleAttackReleaseQueued = false;
+                StartIdleAttackStop();
+            }
+            
+            return;
+        }
+        
+        if (isIdleAttackStopping)
+        {
+            if (Time.time >= idleAttackStopStartTime + data.idleAttackStopDuration)
+            {
+                isIdleAttackStopping = false;
+
+                if (!isStunned && !isAirAttcking && !isStayAirAttacking && !isMovingAttcking)
+                {
+                    SwitchAnimation("");
+                }
+            }
+        }
+    }
+
+    
     public bool CanDash()
     {
         if (!canDash || data == null) return false;
@@ -1202,27 +1266,30 @@ public class PlayerMovement3D : NetworkBehaviour
     private void Damage(int amount)
     {
         if (isRecovery) return;
+        if (amount <= 0) return;
         
-        if (amount == 0) return;
-
+        TriggerDamageAnimation();
+        
         ApplyDamageServerRpc(amount);
-        
     }
-
 
     [ServerRpc(RequireOwnership = false)]
     private void ApplyDamageServerRpc(int amount)
     {
         if (isRecovery) return;
-        
-        CancelDash();
-        
-        currentLife.Value -= amount;
+        if (amount <= 0) return;
 
+        CancelDash();
+        CancelGlide();
+
+        currentLife.Value -= amount;
+        
+        DamageAnimationClientRpc();
 
         if (currentLife.Value <= 0)
             Death();
     }
+
 
 
 
@@ -1237,21 +1304,22 @@ public class PlayerMovement3D : NetworkBehaviour
     private IEnumerator StunRoutine(float duration)
     {
         if (duration == 0) yield break;
-        
+    
         cannotMove = true; 
         isStunned = true; 
-
-        SwitchAnimation("isDamaged");
+        
+        TriggerDamageAnimation();
 
         yield return new WaitForSeconds(duration);
-        
+    
         cannotMove = false; 
         isStunned = false; 
 
-        
         if (!isIdleAttcking && !isMovingAttcking && !isAirAttcking && !isStayAirAttacking)
             SwitchAnimation("");
     }
+
+
 
 
     private void Recovery(bool isHurt)
@@ -1326,6 +1394,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (data == null) return;
         if (cannotMove) return;
         if (isStunned) return;
+        if (isIdleAttcking || isIdleAttackStopping) return;
 
 
         float currentVelX = rb.linearVelocity.x;
@@ -1384,6 +1453,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (data == null) return;
         if (cannotMove) return; 
         if (isStunned) return;
+        if (isIdleAttcking || isIdleAttackStopping) return;
 
 
         Vector3 inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
@@ -1435,7 +1505,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     public void Jump()
     {
-        if (cannotMove) return;
+        if (cannotMove || isIdleAttcking || isIdleAttackStopping) return;
 
         lastPressedJumpTime = 0;
         lastOnGroundTime = 0;
@@ -1549,7 +1619,7 @@ public class PlayerMovement3D : NetworkBehaviour
         StartNewAttackInstance();
         
         if (isGliding)
-            StopGlide();
+            CancelGlide();
 
         SwitchAnimation("isDashing");
 
@@ -1699,7 +1769,7 @@ public class PlayerMovement3D : NetworkBehaviour
         StartNewAttackInstance();
         
         if (isGliding)
-            StopGlide();
+            CancelGlide();
 
         if (data == null)
             yield break;
@@ -1756,19 +1826,36 @@ public class PlayerMovement3D : NetworkBehaviour
     
     private void StartIdleAttack()
     {
-        if (data == null) return;
+        if (data == null || rb == null) return;
 
         StartNewAttackInstance();
         
         isIdleAttcking = true;
+        isIdleAttackStopping = false;
+        idleAttackReleaseQueued = false;
+        idleAttackStartTime = Time.time;
+
         isMovingAttcking = false;
         isAirAttcking = false;
         isStayAirAttacking = false;
-
-        attackStateEndTime = Time.time + data.idleAttackTime;
+        
+        Vector3 vel = rb.linearVelocity;
+        vel.x = 0f;
+        vel.z = 0f;
+        rb.linearVelocity = vel;
 
         SwitchAnimation("isIdleAttack");
     }
+    
+    private void StartIdleAttackStop()
+    {
+        isIdleAttackStopping = true;
+        idleAttackStopStartTime = Time.time;
+        
+        SwitchAnimation("isIdleAttackStop");
+    }
+
+
     
     private bool TryDashJump(Vector3 dashDir, Transform dashChild, Vector3 childOriginalScale, Quaternion childOriginalRotation, Tween stretchTween)
     {
@@ -1872,7 +1959,7 @@ public class PlayerMovement3D : NetworkBehaviour
         StartNewAttackInstance();
         
         if (isGliding)
-            StopGlide();
+            CancelGlide();
         
         isIdleAttcking = false;
         isMovingAttcking = false;
@@ -1891,7 +1978,7 @@ public class PlayerMovement3D : NetworkBehaviour
         StartNewAttackInstance();
         
         if (isGliding)
-            StopGlide();
+            CancelGlide();
         
         isIdleAttcking = false;
         isMovingAttcking = false;
@@ -2065,47 +2152,110 @@ public class PlayerMovement3D : NetworkBehaviour
         playerAnimator.SetBool("is2DAttack", false);
         playerAnimator.SetBool("is3DAttack", false);
         playerAnimator.SetBool("isIdleAttack", false);
+        playerAnimator.SetBool("isIdleAttackStop", false);
         playerAnimator.SetBool("isStayAttack", false);
         playerAnimator.SetBool("isGroundPound", false);
         playerAnimator.SetBool("isLanded", false);
         playerAnimator.SetBool("isGliding", false);
     }
+
     public void SwitchAnimation(string animationName)
     {
+        if (isStunned && animationName != "isDamaged")
+        {
+            animationName = "isDamaged";
+        }
+
         DisableAllAnimations();
 
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
-        
-        if (IsOwner)
+
+        if (IsServer)
+        {
+            netAnimationState.Value = animationName;
+        }
+        else
         {
             UpdateAnimationServerRpc(animationName);
         }
     }
 
-    [ServerRpc]
-    void UpdateAnimationServerRpc(string animationName)
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void UpdateAnimationServerRpc(string animationName)
     {
         netAnimationState.Value = animationName;
     }
-    void OnAnimationChanged(FixedString64Bytes oldValue, FixedString64Bytes newValue)
+
+    private void OnAnimationChanged(FixedString64Bytes oldValue, FixedString64Bytes newValue)
     {
         SwitchAnimationRemote(newValue.ToString());
     }
 
-    void SwitchAnimationRemote(string animationName)
+    private void SwitchAnimationRemote(string animationName)
     {
+        if (isStunned && animationName != "isDamaged")
+        {
+            animationName = "isDamaged";
+        }
+
         DisableAllAnimations();
 
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
     }
+    
+    /// <summary>
+    /// Appelé partout dans le code quand on veut jouer l'anim de dégâts.
+    /// S'occupe d'appeler les RPC en fonction du rôle (server / client).
+    /// </summary>
+    private void TriggerDamageAnimation()
+    {
+        if (IsServer)
+        {
+            // On est déjà sur le serveur → on broadcast directement
+            DamageAnimationClientRpc();
+        }
+        else
+        {
+            // On est sur un client (owner ou remote) → on demande au serveur de broadcast
+            RequestDamageAnimationServerRpc();
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestDamageAnimationServerRpc()
+    {
+        // Reçu sur le serveur → on renvoie à TOUT LE MONDE
+        DamageAnimationClientRpc();
+    }
+
+    [ClientRpc]
+    private void DamageAnimationClientRpc()
+    {
+        PlayDamageAnimationLocal();
+    }
+
+    /// <summary>
+    /// Applique localement l'anim de dégâts, sans repasser par le réseau.
+    /// </summary>
+    private void PlayDamageAnimationLocal()
+    {
+        // On ne touche pas à isStunned ici, c'est StunRoutine qui le gère.
+        DisableAllAnimations();
+        if (playerAnimator != null)
+            playerAnimator.SetBool("isDamaged", true);
+    }
+
+
 
     #endregion
+
     
     #region GROUND CALLBACKS
 
-    private void TouchGround()
+    public void TouchGround()
     {
         if (isGliding)
         {
@@ -2175,6 +2325,8 @@ public class PlayerMovement3D : NetworkBehaviour
     private void LeaveGround()
     {
         isIdleAttcking = false;
+        isIdleAttackStopping = false; 
+        idleAttackReleaseQueued = false;
         isMovingAttcking = false;
         attackStateEndTime = 0f;
 

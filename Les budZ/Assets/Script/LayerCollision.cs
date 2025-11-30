@@ -65,7 +65,7 @@ public class LayerCollision : MonoBehaviour
                 flatDir.Normalize();
 
                 Vector3 finalDir = (flatDir + Vector3.up * 0.2f).normalized;
-                pm.GetHit(finalDir, playerMovement3D.currentForce, 1, 0.25f);
+                pm.GetHit(finalDir, playerMovement3D.currentForce, 1, 0.5f);
 
                 playerMovement3D.CancelDash();
                 playerMovement3D.GetHit(new Vector3(-finalDir.x, finalDir.y, -finalDir.z), playerMovement3D.currentForce/2, 0, 0);
@@ -75,7 +75,8 @@ public class LayerCollision : MonoBehaviour
                         
             if ((playerMovement3D.isStayAirAttacking || playerMovement3D.isAirAttcking))
             {
-                pm.GetHit(Vector3.zero, 0, 1, 0.15f);
+                pm.GetHit(Vector3.zero, 0, 1, 0.5f);
+                playerMovement3D.TouchGround();
                 return;
             }
 
@@ -88,7 +89,7 @@ public class LayerCollision : MonoBehaviour
             if (playerMovement3D.isFalling)
             {
                 playerMovement3D.Bump(0.5f);
-                pm.GetHit(Vector3.zero, 0, 1, 0f);
+                pm.GetHit(Vector3.zero, 0, 1, 0.5f);
                 return;
             }
 

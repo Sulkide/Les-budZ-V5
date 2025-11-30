@@ -110,6 +110,8 @@ public class PlayerData : ScriptableObject
 	
 	[Header("Attack / Stay Air Attack Settings")]
 	public float idleAttackTime = 1f;
+	public float idleAttackMinHoldTime = 0.5f;  
+	public float idleAttackStopDuration = 0.5f; 
 	public float movingAttackTime = 0.5f;
 	public float airAttackTime = 0.25f;
 	
