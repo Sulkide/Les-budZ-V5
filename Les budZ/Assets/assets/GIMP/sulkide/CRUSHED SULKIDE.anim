@@ -1257,7 +1257,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/stick
+    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Weapon
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -1468,7 +1468,7 @@ AnimationClip:
       isIntCurve: 0
       isSerializeReferenceCurve: 0
     - serializedVersion: 2
-      path: 2301681000
+      path: 1173189557
       attribute: 2086281974
       script: {fileID: 0}
       typeID: 1
@@ -4480,27 +4480,6 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0
-        inSlope: Infinity
-        outSlope: Infinity
-        tangentMode: 103
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_IsActive
-    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/stick
-    classID: 1
-    script: {fileID: 0}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
         value: 2.693719
         inSlope: 0
         outSlope: 0
@@ -5762,6 +5741,27 @@ AnimationClip:
     attribute: m_LocalScale.z
     path: PlayerModel/bone_1/bone_2/bone_3/bone_8/bone_9
     classID: 4
+    script: {fileID: 0}
+    flags: 0
+  - serializedVersion: 2
+    curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: Infinity
+        outSlope: Infinity
+        tangentMode: 103
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_IsActive
+    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Weapon
+    classID: 1
     script: {fileID: 0}
     flags: 0
   m_EulerEditorCurves:

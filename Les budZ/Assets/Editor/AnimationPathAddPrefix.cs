@@ -6,7 +6,7 @@ public static class AnimationPathAddPrefix
     [MenuItem("Tools/Animations/Ajouter prefix au chemin")]
     private static void AddPrefixToSelectedClips()
     {
-        const string prefix = "PlayerModel/"; // adapte le nom
+        const string prefix = "PlayerModel/";
 
         foreach (Object obj in Selection.objects)
         {

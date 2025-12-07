@@ -11,9 +11,9 @@ public class PlayerMovement3D : NetworkBehaviour
 {
     [Header("Options General")] 
     public int playerID = 0;
-    //public int currentLife = 15;
     public float recoveryTime = 2f;
     public float currentForce = 10f;
+
     public float gravityScale;
     public float damageCooldown = 2.5f;
     public RigidbodyConstraints defaultConstraints;
@@ -37,6 +37,58 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool canAttack = true;
     public bool canGlide = true;
 
+        
+    [Space(5)]
+    [Header("Dynamique Collider")]
+    [Tooltip("Distance maximale des raycasts +/-Z pour calculer l'épaisseur 2D.")]
+    public float raycastLimit = 1000f;
+
+    [Tooltip("Taille maximale (en Z) des colliders en mode 2D.")]
+    public float collider2DMaxSizeZ = 1000f;
+    
+    private bool dynamicColliderInitialized;
+    private bool lastIs3DState;
+
+
+    private float capsuleHeight3D;
+    private float capsuleRadius3D;
+    private Vector3 capsuleCenter3D;
+
+
+    private Vector3 topBodySize3D;
+    private Vector3 topBodyCenter3D;
+
+    private Vector3 feetSize3D;
+    private Vector3 feetCenter3D;
+
+    private Vector3 dashSize3D;
+    private Vector3 dashCenter3D;
+
+    private Vector3 groundPoundSize3D;
+    private Vector3 groundPoundCenter3D;
+
+    private Vector3 weaponSize3D;
+    private Vector3 weaponCenter3D;
+    
+    private float groundCheckSizeZ3D;
+    private float wallCheckSizeZ3D;
+
+    private float groundCheckOffsetZ3D;
+    private float frontWallCheckOffsetZ3D;
+    private float backWallCheckOffsetZ3D;
+
+    private Collider lastPosZHit;
+    private Collider lastNegZHit;
+    private bool collider2DAtMaxExtent;
+    
+    [SerializeField] private bool debugCollider2DRays = true;
+    [SerializeField] private Color debugRayPosColor = Color.green;
+    [SerializeField] private Color debugRayNegColor = Color.magenta;
+    [SerializeField] private Color debugRayHitColor = Color.red;
+    [SerializeField] private Color debugRayOriginColor = Color.cyan;
+
+    
+    
     [Space(5)]
     [Header("Online")]
     public NetworkVariable<FixedString64Bytes> netAnimationState = new NetworkVariable<FixedString64Bytes>("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -50,7 +102,12 @@ public class PlayerMovement3D : NetworkBehaviour
     public GameObject baseModelPrefab;
     public Animator playerAnimator;
     public GameObject playerModel;
-    public Collider collider;
+    public CapsuleCollider colliderBottomBody;
+    public BoxCollider collideTopBody;
+    public BoxCollider colliderFeet;
+    public BoxCollider colliderDash;
+    public BoxCollider colliderGroundPound;
+    public BoxCollider colliderWeapon;
     public GameObject colliderObject;
     public Rigidbody rb;
     public GameObject parent;
@@ -191,7 +248,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
         
         rb = GetComponent<Rigidbody>();
-        collider = GetComponent<Collider>();
+        colliderBottomBody = GetComponent<CapsuleCollider>();
         playerControls = GetComponent<PlayerInput>();
         playerControls.actions.Disable();   
         playerControls.enabled = false;
@@ -202,10 +259,11 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (rb != null) rb.useGravity = false;
         gameObject.layer = LayerMask.NameToLayer("Player");
-        capsuleSize = collider.bounds.size;
-        capsuleCenter = collider.bounds.center;
-
+        capsuleSize = colliderBottomBody.bounds.size;
+        capsuleCenter = colliderBottomBody.bounds.center;
         
+        InitializeDynamicColliders();
+
         if (data != null)
             SetGravityScale(data.gravityScale);
 
@@ -233,9 +291,8 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             dashesLeft = 1;
         }
-        
-        
     }
+
 
     void OnEnable()
     {
@@ -377,7 +434,9 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner)return;
+        UpdateDynamicColliders();
+
+        if (!IsOwner) return;
         if (moveAction == null) return;
         if (GameManager.instance != null && GameManager.instance.isPaused) return;
 
@@ -408,6 +467,7 @@ public class PlayerMovement3D : NetworkBehaviour
         HandleDashState();
         HandleAttackState();
     }
+
 
     void FixedUpdate()
     {
@@ -947,16 +1007,24 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isStayAirAttacking)
             isStayAirAttacking = false;
 
+        Vector2 dashInput = moveInput;
+        
+        if (GameManager.instance != null && GameManager.instance.is3d)
+        {
+            dashInput = new Vector2(moveInput.y, moveInput.x);
+        }
+
         Vector3 inputDir;
 
         if (GameManager.instance != null && GameManager.instance.is3d)
         {
-            inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
+            inputDir = new Vector3(dashInput.x, 0f, -dashInput.y);
         }
         else
         {
-            inputDir = new Vector3(moveInput.x, moveInput.y, 0f);
+            inputDir = new Vector3(dashInput.x, dashInput.y, 0f);
         }
+
 
         if (inputDir.sqrMagnitude < 0.0001f)
             return;
@@ -1051,7 +1119,7 @@ public class PlayerMovement3D : NetworkBehaviour
         Vector3 inputDir;
         if (GameManager.instance != null && GameManager.instance.is3d)
         {
-            inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
+            inputDir = new Vector3(moveInput.y, 0f, -moveInput.x);
         }
         else
         {
@@ -1106,6 +1174,7 @@ public class PlayerMovement3D : NetworkBehaviour
             SwitchAnimation("");
         }
     }
+
 
     private void HandleIdleAttackHoldState()
     {
@@ -1456,7 +1525,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isIdleAttcking || isIdleAttackStopping) return;
 
 
-        Vector3 inputDir = new Vector3(moveInput.x, 0f, moveInput.y);
+        Vector3 inputDir = new Vector3(moveInput.y, 0f, -moveInput.x);
         Vector3 horizontalVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
 
         float inputMag = Mathf.Clamp01(inputDir.magnitude);
@@ -1648,12 +1717,19 @@ public class PlayerMovement3D : NetworkBehaviour
                 startScale.z
             );
 
+
             Vector2 animInput = moveInput;
+            
+            if (GameManager.instance != null && GameManager.instance.is3d)
+            {
+                animInput = new Vector2(-moveInput.y, moveInput.x);
+            }
 
             if (!isFacingRight)
             {
                 animInput.x *= -1f;
             }
+
 
             if (animInput.sqrMagnitude > 0.0001f)
             {
@@ -2074,7 +2150,359 @@ public class PlayerMovement3D : NetworkBehaviour
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
         if (collision.contactCount == 0) return;
+        
+        AdaptRotationToTerrain2D(collision);
 
+        
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        if (isStunned) return;
+        
+        if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0)
+            return;
+
+        Vector3 euler = transform.eulerAngles;
+        euler.z = 0f;
+        transform.rotation = Quaternion.Euler(euler);
+
+        if (colliderBottomBody != null && noFrictionMaterial != null)
+            colliderBottomBody.sharedMaterial = noFrictionMaterial;
+    }
+
+    #endregion
+    
+    #region DYNAMIC COLLIDERS 2D / 3D
+    
+    private void InitializeDynamicColliders()
+    {
+        if (dynamicColliderInitialized)
+            return;
+        
+        if (colliderBottomBody != null)
+        {
+            capsuleHeight3D = colliderBottomBody.height;
+            capsuleRadius3D = colliderBottomBody.radius;
+            capsuleCenter3D = colliderBottomBody.center;
+        }
+        
+        if (collideTopBody != null)
+        {
+            topBodySize3D   = collideTopBody.size;
+            topBodyCenter3D = collideTopBody.center;
+        }
+
+        if (colliderFeet != null)
+        {
+            feetSize3D   = colliderFeet.size;
+            feetCenter3D = colliderFeet.center;
+        }
+
+        if (colliderDash != null)
+        {
+            dashSize3D   = colliderDash.size;
+            dashCenter3D = colliderDash.center;
+        }
+
+        if (colliderGroundPound != null)
+        {
+            groundPoundSize3D   = colliderGroundPound.size;
+            groundPoundCenter3D = colliderGroundPound.center;
+        }
+
+        if (colliderWeapon != null)
+        {
+            weaponSize3D   = colliderWeapon.size;
+            weaponCenter3D = colliderWeapon.center;
+        }
+        
+        groundCheckSizeZ3D = groundCheckSize.z;
+        wallCheckSizeZ3D   = wallCheckSize.z;
+
+        if (groundCheckPoint != null)
+            groundCheckOffsetZ3D = groundCheckPoint.localPosition.z;
+
+        if (frontWallCheckPoint != null)
+            frontWallCheckOffsetZ3D = frontWallCheckPoint.localPosition.z;
+
+        if (backWallCheckPoint != null)
+            backWallCheckOffsetZ3D = backWallCheckPoint.localPosition.z;
+        
+        if (GameManager.instance != null)
+            lastIs3DState = GameManager.instance.is3d;
+        else
+            lastIs3DState = true;
+        
+        lastPosZHit = null;
+        lastNegZHit = null;
+        collider2DAtMaxExtent = false;
+
+        dynamicColliderInitialized = true;
+    }
+
+    
+    private void UpdateDynamicColliders()
+    {
+        if (GameManager.instance == null)
+            return;
+
+        if (!dynamicColliderInitialized)
+            InitializeDynamicColliders();
+
+        bool is3DNow = GameManager.instance.is3d;
+
+        if (is3DNow != lastIs3DState)
+        {
+            lastIs3DState = is3DNow;
+            
+            lastPosZHit = null;
+            lastNegZHit = null;
+            collider2DAtMaxExtent = false;
+
+            if (is3DNow)
+            {
+                SwitchToCollider3D();
+            }
+            else
+            {
+                SwitchToCollider2D(true);
+            }
+
+            return;
+        }
+
+        if (!is3DNow)
+        {
+            if (collider2DAtMaxExtent)
+                return;
+
+            SwitchToCollider2D(false);
+        }
+    }
+
+
+    private void SwitchToCollider3D()
+    {
+        if (!dynamicColliderInitialized) return;
+        
+        if (colliderBottomBody != null)
+        {
+            colliderBottomBody.height = capsuleHeight3D;
+            colliderBottomBody.radius = capsuleRadius3D;
+            colliderBottomBody.center = capsuleCenter3D;
+        }
+        
+        if (collideTopBody != null)
+        {
+            collideTopBody.size   = topBodySize3D;
+            collideTopBody.center = topBodyCenter3D;
+        }
+
+        if (colliderFeet != null)
+        {
+            colliderFeet.size   = feetSize3D;
+            colliderFeet.center = feetCenter3D;
+        }
+
+        if (colliderDash != null)
+        {
+            colliderDash.size   = dashSize3D;
+            colliderDash.center = dashCenter3D;
+        }
+
+        if (colliderGroundPound != null)
+        {
+            colliderGroundPound.size   = groundPoundSize3D;
+            colliderGroundPound.center = groundPoundCenter3D;
+        }
+
+        if (colliderWeapon != null)
+        {
+            colliderWeapon.size   = weaponSize3D;
+            colliderWeapon.center = weaponCenter3D;
+        }
+        
+        Vector3 gSize = groundCheckSize;
+        gSize.z = groundCheckSizeZ3D;
+        groundCheckSize = gSize;
+
+        Vector3 wSize = wallCheckSize;
+        wSize.z = wallCheckSizeZ3D;
+        wallCheckSize = wSize;
+
+        if (groundCheckPoint != null)
+        {
+            Vector3 p = groundCheckPoint.localPosition;
+            p.z = groundCheckOffsetZ3D;
+            groundCheckPoint.localPosition = p;
+        }
+
+        if (frontWallCheckPoint != null)
+        {
+            Vector3 p = frontWallCheckPoint.localPosition;
+            p.z = frontWallCheckOffsetZ3D;
+            frontWallCheckPoint.localPosition = p;
+        }
+
+        if (backWallCheckPoint != null)
+        {
+            Vector3 p = backWallCheckPoint.localPosition;
+            p.z = backWallCheckOffsetZ3D;
+            backWallCheckPoint.localPosition = p;
+        }
+    }
+
+    private void SwitchToCollider2D(bool _forceRecalculation)
+    {
+        if (!dynamicColliderInitialized) return;
+            
+        Vector3 origin = (colliderBottomBody != null)
+            ? colliderBottomBody.bounds.center
+            : transform.position;
+
+        float maxHalf = Mathf.Max(0.01f, collider2DMaxSizeZ * 0.5f);
+
+        float distPos = maxHalf;
+        float distNeg = maxHalf;
+
+        RaycastHit hit;
+            
+        // +Z
+        if (Physics.Raycast(origin, Vector3.forward, out hit, raycastLimit, groundLayer))
+        {
+            distPos = Mathf.Min(hit.distance, maxHalf);
+        }
+            
+        // -Z
+        if (Physics.Raycast(origin, Vector3.back, out hit, raycastLimit, groundLayer))
+        {
+            distNeg = Mathf.Min(hit.distance, maxHalf);
+        }
+
+        // 🔴 NOUVEL ALGO : on prend le mur le plus proche
+        // pour être sûr de ne JAMAIS dépasser un mur.
+        const float skin = 0.02f; // petite marge pour ne pas coller au mur
+
+        float minDist = Mathf.Min(distPos, distNeg);
+        float halfThickness = Mathf.Clamp(minDist - skin, 0.01f, maxHalf);
+        float newSizeZ = halfThickness * 2f;
+
+        // On garde le centre au milieu (ça évite les surprises)
+        float centerOffsetZ = 0f;
+
+        // Capsule
+        if (colliderBottomBody != null)
+        {
+            Vector3 c = colliderBottomBody.center;
+            c.z = centerOffsetZ;
+            colliderBottomBody.center = c;
+
+            float targetRadius = Mathf.Min(capsuleRadius3D, halfThickness);
+            colliderBottomBody.radius = targetRadius;
+        }
+            
+        // Top body
+        if (collideTopBody != null)
+        {
+            Vector3 size = collideTopBody.size;
+            size.z = newSizeZ;
+            collideTopBody.size = size;
+
+            Vector3 c = collideTopBody.center;
+            c.z = centerOffsetZ;
+            collideTopBody.center = c;
+        }
+
+        // Pieds
+        if (colliderFeet != null)
+        {
+            Vector3 size = colliderFeet.size;
+            size.z = newSizeZ;
+            colliderFeet.size = size;
+
+            Vector3 c = colliderFeet.center;
+            c.z = centerOffsetZ;
+            colliderFeet.center = c;
+        }
+
+        // Dash
+        if (colliderDash != null)
+        {
+            Vector3 size = colliderDash.size;
+            size.z = newSizeZ;
+            colliderDash.size = size;
+
+            Vector3 c = colliderDash.center;
+            c.z = centerOffsetZ;
+            colliderDash.center = c;
+        }
+
+        // Ground Pound
+        if (colliderGroundPound != null)
+        {
+            Vector3 size = colliderGroundPound.size;
+            size.z = newSizeZ;
+            colliderGroundPound.size = size;
+
+            Vector3 c = colliderGroundPound.center;
+            c.z = centerOffsetZ;
+            colliderGroundPound.center = c;
+        }
+
+        // Arme
+        if (colliderWeapon != null)
+        {
+            Vector3 size = colliderWeapon.size;
+            size.z = newSizeZ;
+            colliderWeapon.size = size;
+
+            Vector3 c = colliderWeapon.center;
+            c.z = centerOffsetZ;
+            colliderWeapon.center = c;
+        }
+
+        // Ground & wall checks
+        Vector3 gSize = groundCheckSize;
+        gSize.z = newSizeZ;
+        groundCheckSize = gSize;
+
+        Vector3 wSize2 = wallCheckSize;
+        wSize2.z = newSizeZ;
+        wallCheckSize = wSize2;
+
+        if (groundCheckPoint != null)
+        {
+            Vector3 p = groundCheckPoint.localPosition;
+            p.z = centerOffsetZ;
+            groundCheckPoint.localPosition = p;
+        }
+
+        if (frontWallCheckPoint != null)
+        {
+            Vector3 p = frontWallCheckPoint.localPosition;
+            p.z = centerOffsetZ;
+            frontWallCheckPoint.localPosition = p;
+        }
+
+        if (backWallCheckPoint != null)
+        {
+            Vector3 p = backWallCheckPoint.localPosition;
+            p.z = centerOffsetZ;
+            backWallCheckPoint.localPosition = p;
+        }
+    }
+
+
+
+
+    #endregion
+
+    
+    #region MISC
+
+    public void AdaptRotationToTerrain2D(Collision collision)
+    {
         ContactPoint bestContact = collision.GetContact(0);
         for (int i = 1; i < collision.contactCount; i++)
         {
@@ -2090,7 +2518,7 @@ public class PlayerMovement3D : NetworkBehaviour
         float normalAngle = Mathf.Atan2(n2D.y, n2D.x) * Mathf.Rad2Deg;
         float surfaceAngle = normalAngle - 90f;
 
-        if (surfaceAngle >= -45f && surfaceAngle <= 45f)
+        if (surfaceAngle >= -45f && surfaceAngle <= 45f && !GameManager.instance.is3d)
         {
             Vector3 euler = transform.eulerAngles;
             euler.z = surfaceAngle;
@@ -2107,33 +2535,18 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (withinFrictionAngle && noMoveInput && onGround)
         {
-            if (collider != null && frictionMaterial != null)
-                collider.sharedMaterial = frictionMaterial;
+            if (colliderBottomBody != null && frictionMaterial != null)
+                colliderBottomBody.sharedMaterial = frictionMaterial;
         }
         else
         {
-            if (collider != null && noFrictionMaterial != null)
-                collider.sharedMaterial = noFrictionMaterial;
+            if (colliderBottomBody != null && noFrictionMaterial != null)
+                colliderBottomBody.sharedMaterial = noFrictionMaterial;
         }
     }
-
-    private void OnCollisionExit(Collision collision)
-    {
-        if (isStunned) return;
-        
-        if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0)
-            return;
-
-        Vector3 euler = transform.eulerAngles;
-        euler.z = 0f;
-        transform.rotation = Quaternion.Euler(euler);
-
-        if (collider != null && noFrictionMaterial != null)
-            collider.sharedMaterial = noFrictionMaterial;
-    }
-
+    
     #endregion
-
+    
     #region ANIMATION
 
     public void DisableAllAnimations()
@@ -2251,7 +2664,6 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     #endregion
-
     
     #region GROUND CALLBACKS
 
@@ -2345,6 +2757,7 @@ public class PlayerMovement3D : NetworkBehaviour
     #region GIZMOS
     private void OnDrawGizmos()
     {
+  
         if (groundCheckPoint != null)
         {
             Gizmos.color = Color.yellow;
@@ -2384,8 +2797,66 @@ public class PlayerMovement3D : NetworkBehaviour
             Gizmos.DrawLine(top + Vector3.right * r, bottom + Vector3.right * r);
             Gizmos.DrawLine(top - Vector3.right * r, bottom - Vector3.right * r);
         }
+
+        if (!debugCollider2DRays)
+            return;
+
+        Vector3 origin;
+        if (colliderBottomBody != null)
+            origin = colliderBottomBody.bounds.center;
+        else
+            origin = transform.position;
+
+        Gizmos.color = debugRayOriginColor;
+        Gizmos.DrawSphere(origin, 0.05f);
+
+        float maxRayLen = raycastLimit <= 0f ? 100f : raycastLimit;
+
         
-        
+        if (Application.isPlaying)
+        {
+            RaycastHit hit;
+
+
+            Gizmos.color = debugRayPosColor;
+            Vector3 dirPos = Vector3.forward;
+            float lenPos = maxRayLen;
+            if (Physics.Raycast(origin, dirPos, out hit, maxRayLen, groundLayer))
+            {
+                lenPos = hit.distance;
+                Gizmos.DrawLine(origin, hit.point);
+                Gizmos.color = debugRayHitColor;
+                Gizmos.DrawSphere(hit.point, 0.07f);
+            }
+            else
+            {
+                Gizmos.DrawLine(origin, origin + dirPos * lenPos);
+            }
+            
+            Gizmos.color = debugRayNegColor;
+            Vector3 dirNeg = Vector3.back;
+            float lenNeg = maxRayLen;
+            if (Physics.Raycast(origin, dirNeg, out hit, maxRayLen, groundLayer))
+            {
+                lenNeg = hit.distance;
+                Gizmos.DrawLine(origin, hit.point);
+                Gizmos.color = debugRayHitColor;
+                Gizmos.DrawSphere(hit.point, 0.07f);
+            }
+            else
+            {
+                Gizmos.DrawLine(origin, origin + dirNeg * lenNeg);
+            }
+        }
+        else
+        {
+            
+            Gizmos.color = debugRayPosColor;
+            Gizmos.DrawLine(origin, origin + Vector3.forward * maxRayLen);
+
+            Gizmos.color = debugRayNegColor;
+            Gizmos.DrawLine(origin, origin + Vector3.back * maxRayLen);
+        }
     }
     
     private void DrawCircle(Vector3 center, float radius, int segments = 32)

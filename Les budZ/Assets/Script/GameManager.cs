@@ -219,7 +219,7 @@ public class GameManager : MonoBehaviour
 
     public int test = 1;
 
-    
+    public event System.Action<bool> OnDimensionChanged;
     
     void Start()
     {
@@ -615,6 +615,8 @@ public class GameManager : MonoBehaviour
     {
         UpdateCameraTargetPosition();
     }
+    
+    
     
     private void UpdateCameraTargetPosition()
     {
@@ -1514,7 +1516,9 @@ public class GameManager : MonoBehaviour
     public void ChangeDimensionState(bool is3DValue)
     {
         is3d = is3DValue;
+        OnDimensionChanged?.Invoke(is3d);
     }
+
 
     public void ChangeDimension()
     {

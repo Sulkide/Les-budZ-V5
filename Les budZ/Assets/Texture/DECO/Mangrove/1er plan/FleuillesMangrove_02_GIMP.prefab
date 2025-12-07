@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4427882428992662203}
   - component: {fileID: 6711504281046849515}
   - component: {fileID: 1038971274441638234}
+  - component: {fileID: 7972388680392671130}
   m_Layer: 0
   m_Name: cannes_01_GIMP_0
   m_TagString: Untagged
@@ -199,6 +200,23 @@ MonoBehaviour:
   boundsPadding: 0.15
   prewarmDistance: 5
   forceActiveOnStart: 1
+--- !u!114 &7972388680392671130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5384494671138746218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba247d7972e98c419fb495bd5e76dde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DimensionFlipObserver
+  flipDuration: 0.5
+  localAxis: {x: 0, y: 1, z: 0}
+  angle2D: 0
+  angle3D: 90
+  useLocalRotation: 1
 --- !u!1 &8145665025503472614
 GameObject:
   m_ObjectHideFlags: 0
@@ -209,6 +227,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7149860610835458225}
   - component: {fileID: 3165476387966703003}
+  - component: {fileID: 5456342575549559635}
   m_Layer: 0
   m_Name: FleuillesMangrove_02_GIMP
   m_TagString: Untagged
@@ -250,3 +269,20 @@ MonoBehaviour:
   boundsPadding: 1
   prewarmDistance: 10
   forceActiveOnStart: 1
+--- !u!114 &5456342575549559635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8145665025503472614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba247d7972e98c419fb495bd5e76dde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DimensionFlipObserver
+  flipDuration: 0.5
+  localAxis: {x: 0, y: 1, z: 0}
+  angle2D: 0
+  angle3D: 90
+  useLocalRotation: 1

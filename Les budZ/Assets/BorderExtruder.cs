@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 
 [ExecuteAlways]
 public class BorderExtruder : MonoBehaviour
@@ -32,6 +33,9 @@ public class BorderExtruder : MonoBehaviour
             Debug.LogError("[BorderExtruder] Le MeshFilter n'a pas de mesh.");
             return;
         }
+
+        var polygoneMeshCollider = transform.AddComponent<MeshCollider>();
+        polygoneMeshCollider.sharedMesh = sourceMesh;
 
         // Déterminer le matériau à utiliser (override ou celui de la source)
         Material matToUse = overrideMaterial;

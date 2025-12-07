@@ -1567,27 +1567,6 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/stick
-    classID: 1
-    script: {fileID: 0}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: Infinity
-        outSlope: Infinity
-        tangentMode: 103
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_IsActive
     path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Dash collider
     classID: 1
     script: {fileID: 0}
@@ -1610,6 +1589,27 @@ AnimationClip:
       m_RotationOrder: 4
     attribute: m_IsActive
     path: PlayerModel/bone_1/bone_14/bone_15/bone_16/Ground pound Collider
+    classID: 1
+    script: {fileID: 0}
+    flags: 0
+  - serializedVersion: 2
+    curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: Infinity
+        outSlope: Infinity
+        tangentMode: 103
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_IsActive
+    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Weapon
     classID: 1
     script: {fileID: 0}
     flags: 0
@@ -1757,15 +1757,6 @@ AnimationClip:
       isIntCurve: 0
       isSerializeReferenceCurve: 0
     - serializedVersion: 2
-      path: 2301681000
-      attribute: 2086281974
-      script: {fileID: 0}
-      typeID: 1
-      customType: 0
-      isPPtrCurve: 0
-      isIntCurve: 0
-      isSerializeReferenceCurve: 0
-    - serializedVersion: 2
       path: 3177497323
       attribute: 2086281974
       script: {fileID: 0}
@@ -1776,6 +1767,15 @@ AnimationClip:
       isSerializeReferenceCurve: 0
     - serializedVersion: 2
       path: 3284037278
+      attribute: 2086281974
+      script: {fileID: 0}
+      typeID: 1
+      customType: 0
+      isPPtrCurve: 0
+      isIntCurve: 0
+      isSerializeReferenceCurve: 0
+    - serializedVersion: 2
+      path: 1173189557
       attribute: 2086281974
       script: {fileID: 0}
       typeID: 1
@@ -7438,27 +7438,6 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/stick
-    classID: 1
-    script: {fileID: 0}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: Infinity
-        outSlope: Infinity
-        tangentMode: 103
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_IsActive
     path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Dash collider
     classID: 1
     script: {fileID: 0}
@@ -7481,6 +7460,27 @@ AnimationClip:
       m_RotationOrder: 4
     attribute: m_IsActive
     path: PlayerModel/bone_1/bone_14/bone_15/bone_16/Ground pound Collider
+    classID: 1
+    script: {fileID: 0}
+    flags: 0
+  - serializedVersion: 2
+    curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: Infinity
+        outSlope: Infinity
+        tangentMode: 103
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_IsActive
+    path: PlayerModel/bone_1/bone_2/bone_3/bone_4/bone_5/Weapon
     classID: 1
     script: {fileID: 0}
     flags: 0

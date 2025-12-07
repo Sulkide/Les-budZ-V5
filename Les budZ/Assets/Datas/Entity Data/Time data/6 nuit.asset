@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startTime: 23:00:00
   endTime: 23:59:59
-  startRotation: {x: 150, y: 0, z: 0}
-  endRotation: {x: 180, y: 0, z: 0}
+  startRotation: {x: 150, y: -45, z: 0}
+  endRotation: {x: 180, y: -90, z: 0}
   startColor: {r: 1, g: 0.4392157, b: 0.050980393, a: 1}
   endColor: {r: 0.30588236, g: 0.5686275, b: 1, a: 1}

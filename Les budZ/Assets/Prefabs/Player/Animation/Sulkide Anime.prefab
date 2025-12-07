@@ -635,7 +635,7 @@ GameObject:
   m_Component:
   - component: {fileID: 164914576846908657}
   - component: {fileID: 5386875339048716305}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Sulkide Anime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -699,7 +699,7 @@ GameObject:
   - component: {fileID: 8378596711842620151}
   - component: {fileID: 4790728922932854094}
   m_Layer: 11
-  m_Name: stick
+  m_Name: Weapon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2822,7 +2822,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3635207356787187106}
-  - component: {fileID: 4232377287943368525}
+  - component: {fileID: 3211171464829912235}
   m_Layer: 11
   m_Name: Dash collider
   m_TagString: Untagged
@@ -2845,8 +2845,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3450992273777345122}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &4232377287943368525
-CapsuleCollider:
+--- !u!65 &3211171464829912235
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2863,11 +2863,9 @@ CapsuleCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 8.20158
-  m_Height: 48.00178
-  m_Direction: 0
-  m_Center: {x: 2.6181996, y: 0.7183615, z: 0}
+  serializedVersion: 3
+  m_Size: {x: 48, y: 16.68, z: 16.29}
+  m_Center: {x: 2.6, y: 1, z: 0}
 --- !u!1 &5318025050114797719
 GameObject:
   m_ObjectHideFlags: 0
@@ -4755,7 +4753,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 437947295808955702}
-  - component: {fileID: 1207901193487360619}
+  - component: {fileID: 4540710930328098271}
   m_Layer: 9
   m_Name: Ground pound Collider
   m_TagString: Untagged
@@ -4778,8 +4776,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3763836360854745601}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &1207901193487360619
-SphereCollider:
+--- !u!65 &4540710930328098271
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -4797,7 +4795,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 7
+  m_Size: {x: 13.98, y: 14.18, z: 13.98}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7767429531267635294
 GameObject:
@@ -5263,7 +5261,7 @@ GameObject:
   - component: {fileID: 6986615601109045407}
   - component: {fileID: 3312556054431482458}
   m_Layer: 11
-  m_Name: Cube
+  m_Name: Weapon collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

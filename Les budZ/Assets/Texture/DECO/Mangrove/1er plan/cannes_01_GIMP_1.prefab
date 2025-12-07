@@ -190,6 +190,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1157343529750767464}
   - component: {fileID: 7947542215264716898}
+  - component: {fileID: -1328619571092878026}
   m_Layer: 0
   m_Name: cannes_01_GIMP_1
   m_TagString: Untagged
@@ -231,3 +232,20 @@ MonoBehaviour:
   boundsPadding: 1
   prewarmDistance: 10
   forceActiveOnStart: 1
+--- !u!114 &-1328619571092878026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5616388694958121335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ba247d7972e98c419fb495bd5e76dde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DimensionFlipObserver
+  flipDuration: 0.5
+  localAxis: {x: 0, y: 1, z: 0}
+  angle2D: 0
+  angle3D: 90
+  useLocalRotation: 1

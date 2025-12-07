@@ -21,7 +21,7 @@ MonoBehaviour:
     depthDelta: 0
   global_range_manual:
     range2D: {x: -1000, y: 0, z: 1001}
-    range3D: {x: 0, y: 10, z: 10}
+    range3D: {x: 0, y: 50, z: 50}
     depthDelta: 0
   global_range_default:
     range2D: {x: 0, y: 0, z: 1}
@@ -124,18 +124,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0.18
             depthMin: 0
-            depthMax: 10
+            depthMax: 50
           renderMaterial: {fileID: 0}
           tintColor: {r: 1, g: 1, b: 1, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 10, z: 10}
+        range3D: {x: 0, y: 50, z: 50}
         depthDelta: 0.18
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.05, y: 0.4011094, z: 0.3511094}
-        depthDelta: 0.017640624
+        range3D: {x: 0.05, y: 0.4011905, z: 0.35119048}
+        depthDelta: 0.017559525
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -203,18 +203,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0
             depthMin: 0
-            depthMax: 1.0804597
+            depthMax: 24.572525
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1.0804597, z: 1.0804597}
+        range3D: {x: 0, y: 24.572525, z: 24.572525}
         depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.41875002, y: 0.7698594, z: 0.35110936}
-        depthDelta: 0.017640624
+        range3D: {x: 0.41875002, y: 0.7699405, z: 0.35119048}
+        depthDelta: 0.017559525
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -281,19 +281,19 @@ MonoBehaviour:
             useSortingGroupsForObjects: 1
           sort3D:
             depthDelta: 0.18
-            depthMin: 1.0804597
-            depthMax: 5
+            depthMin: 10.60427
+            depthMax: 46.904766
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 1.0804597, y: 5, z: 3.9195404}
+        range3D: {x: 10.60427, y: 46.904766, z: 36.300495}
         depthDelta: 0.18
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.7875, y: 1.1386094, z: 0.3511094}
-        depthDelta: 0.017640626
+        range3D: {x: 0.7875, y: 1.1386905, z: 0.35119045}
+        depthDelta: 0.017559523
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -361,18 +361,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0
             depthMin: 0
-            depthMax: 0
+            depthMax: 41.587303
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 0, z: 0}
+        range3D: {x: 0, y: 41.587303, z: 41.587303}
         depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.15625, y: 1.5073594, z: 0.3511094}
-        depthDelta: 0.017640626
+        range3D: {x: 1.15625, y: 1.5074404, z: 0.35119045}
+        depthDelta: 0.017559523
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -440,18 +440,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0
             depthMin: 1.126437
-            depthMax: 5
+            depthMax: 22.460321
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 1.126437, y: 5, z: 3.873563}
+        range3D: {x: 1.126437, y: 22.460321, z: 21.333885}
         depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.525, y: 1.8761094, z: 0.3511094}
-        depthDelta: 0.017640626
+        range3D: {x: 1.525, y: 1.8761904, z: 0.35119045}
+        depthDelta: 0.017559523
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -519,18 +519,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0.18
             depthMin: 0
-            depthMax: 0.8735633
+            depthMax: 33.571976
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 0.8735633, z: 0.8735633}
+        range3D: {x: 0, y: 33.571976, z: 33.571976}
         depthDelta: 0.18
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.8937501, y: 2.2448595, z: 0.3511094}
-        depthDelta: 0.01764062
+        range3D: {x: 1.8937501, y: 2.2449405, z: 0.35119045}
+        depthDelta: 0.017559523
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -598,18 +598,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0.18
             depthMin: 1.5442529
-            depthMax: 5
+            depthMax: 16.11111
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 1.5442529, y: 5, z: 3.4557471}
+        range3D: {x: 1.5442529, y: 16.11111, z: 14.566858}
         depthDelta: 0.18
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 2.2625, y: 2.6136096, z: 0.3511095}
-        depthDelta: 0.017640626
+        range3D: {x: 2.2625, y: 2.6136906, z: 0.35119057}
+        depthDelta: 0.017559528
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -676,19 +676,19 @@ MonoBehaviour:
             useSortingGroupsForObjects: 1
           sort3D:
             depthDelta: 0
-            depthMin: 0.05
-            depthMax: 3
+            depthMin: 0
+            depthMax: 35.06349
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0.05, y: 3, z: 2.95}
+        range3D: {x: 0, y: 35.06349, z: 35.06349}
         depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 2.6312501, y: 2.9823596, z: 0.3511095}
-        depthDelta: 0.017640626
+        range3D: {x: 2.6312501, y: 2.9824407, z: 0.35119057}
+        depthDelta: 0.017559528
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
