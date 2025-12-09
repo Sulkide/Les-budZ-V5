@@ -238,7 +238,7 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateDisplay(DateTime.Now);
-        // On peut démarrer une coroutine pour mise à jour efficace
+        
         StartCoroutine(RefreshLoop());
         
         System.Collections.IEnumerator RefreshLoop()
@@ -1518,6 +1518,7 @@ public class GameManager : MonoBehaviour
         is3d = is3DValue;
         OnDimensionChanged?.Invoke(is3d);
     }
+    
 
 
     public void ChangeDimension()
@@ -1530,7 +1531,6 @@ public class GameManager : MonoBehaviour
         {
             cameraFlip3D.Flip2Dto3D();
         }
-        
 
     }
 }

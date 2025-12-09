@@ -49,15 +49,12 @@ public class DimensionFlipObserver : MonoBehaviour
 
     private IEnumerator SubscribeWhenReady()
     {
-        // Attendre que GameManager.instance soit non-null
         while (GameManager.instance == null)
             yield return null;
 
-        // Sécurité au cas où on serait déjà abonné
         GameManager.instance.OnDimensionChanged -= HandleDimensionChanged;
         GameManager.instance.OnDimensionChanged += HandleDimensionChanged;
-
-        // Sync immédiate à l’état courant (2D ou 3D)
+        
         HandleDimensionChanged(GameManager.instance.is3d);
         subscribeRoutine = null;
     }

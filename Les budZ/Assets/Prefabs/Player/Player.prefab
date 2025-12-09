@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 6218067087293777299}
   - component: {fileID: 8465123934136201327}
   - component: {fileID: 8537297429346865255}
+  - component: {fileID: 3082569102100065963}
   m_Layer: 11
   m_Name: Player
   m_TagString: Untagged
@@ -88,6 +89,7 @@ MonoBehaviour:
   currentForce: 60
   gravityScale: 0
   damageCooldown: 2.5
+  FlipDimensionCoolDown: 1
   defaultConstraints: 0
   moveInput: {x: 0, y: 0}
   aimInput: {x: 0, y: 0}
@@ -109,6 +111,12 @@ MonoBehaviour:
   canGlide: 1
   raycastLimit: 100
   collider2DMaxSizeZ: 100
+  collider2DResizeDelay: 1
+  debugCollider2DRays: 1
+  debugRayPosColor: {r: 0, g: 1, b: 0, a: 1}
+  debugRayNegColor: {r: 0, g: 1, b: 0, a: 1}
+  debugRayHitColor: {r: 1, g: 0, b: 0, a: 1}
+  debugRayOriginColor: {r: 1, g: 1, b: 1, a: 1}
   netAnimationState:
     m_InternalValue:
       utf8LengthInBytes: 0
@@ -180,6 +188,8 @@ MonoBehaviour:
         byte0061: 0
   currentLife:
     m_InternalValue: 15
+  is3DNow:
+    m_InternalValue: 1
   data: {fileID: 11400000, guid: b55f98cd1c891e64da9a2992c3655998, type: 2}
   playerControls: {fileID: 1836536088433505170}
   baseModelPrefab: {fileID: 0}
@@ -196,6 +206,7 @@ MonoBehaviour:
   parent: {fileID: 0}
   frictionMaterial: {fileID: 13400000, guid: 3af2082e525e0f04d988aee0d3fbfdf0, type: 2}
   noFrictionMaterial: {fileID: 13400000, guid: c0b2f478668eb3d468d7ab9f8b5fcdb3, type: 2}
+  changeLayerOnDimensionSwitch: {fileID: 3082569102100065963}
   cam: {fileID: 0}
   armOriginal: {fileID: 0}
   armAim: {fileID: 0}
@@ -342,7 +353,7 @@ CapsuleCollider:
   m_Radius: 0.39907125
   m_Height: 1.0009861
   m_Direction: 2
-  m_Center: {x: -0.000000029802322, y: -0.59, z: 0.0043138266}
+  m_Center: {x: -0.000000029802322, y: -0.59, z: 0}
 --- !u!54 &5538446631649863441
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -586,6 +597,31 @@ MonoBehaviour:
   angle2D: 0
   angle3D: 90
   useLocalRotation: 1
+--- !u!114 &3082569102100065963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4271707286183205814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe2ed84be7700c41924298414893b36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChangeLayerOnDimensionSwitch
+  currentObjectIs3D: 1
+  changeObjectLayerList:
+  - {fileID: 4271707286183205814}
+  - {fileID: 369927160261812951}
+  - {fileID: 8236831018501678555}
+  - {fileID: 4923389967090084063}
+  - {fileID: 7600896546535256221}
+  sameDimensionLayer:
+    serializedVersion: 2
+    m_Bits: 2048
+  differentDimensionLayer:
+    serializedVersion: 2
+    m_Bits: 1
 --- !u!1 &4719299283285459857
 GameObject:
   m_ObjectHideFlags: 0
@@ -1176,6 +1212,11 @@ Animator:
 --- !u!1 &6869475261898006779 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1140961117210024451, guid: 43d518aa001ccec4782545a06752972f, type: 3}
+  m_PrefabInstance: {fileID: 5800853256822700792}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7600896546535256221 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4177944550128454245, guid: 43d518aa001ccec4782545a06752972f, type: 3}
   m_PrefabInstance: {fileID: 5800853256822700792}
   m_PrefabAsset: {fileID: 0}
 --- !u!65 &8104787303879484585 stripped
