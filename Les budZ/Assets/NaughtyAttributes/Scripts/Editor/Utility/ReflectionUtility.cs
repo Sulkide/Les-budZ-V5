@@ -103,13 +103,7 @@ namespace NaughtyAttributes.Editor
                 return listType.GetElementType();
             }
         }
-
-        /// <summary>
-        ///		Get type and all base types of target, sorted as following:
-        ///		<para />[target's type, base type, base's base type, ...]
-        /// </summary>
-        /// <param name="target"></param>
-        /// <returns></returns>
+        
         private static List<Type> GetSelfAndBaseTypes(object target)
         {
             List<Type> types = new List<Type>()

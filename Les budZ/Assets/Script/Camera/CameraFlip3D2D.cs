@@ -64,22 +64,17 @@ public class CameraFlip3D2D : MonoBehaviour
         InitMapping();
     }
 
-    /// <summary>
-    /// On fixe UNE FOIS baseFov et baseSize à partir de l'état au démarrage.
-    /// </summary>
     private void InitMapping()
     {
         if (mappingInitialized) return;
 
         if (!cam.orthographic)
         {
-            // On démarre en 3D : FOV de départ = référence
             baseFov = cam.fieldOfView;
             baseSize = baseFov / mappingRatio;
         }
         else
         {
-            // On démarre en 2D : size de départ → FOV équivalent
             baseSize = cam.orthographicSize;
             baseFov = baseSize * mappingRatio;
         }
@@ -111,10 +106,7 @@ public class CameraFlip3D2D : MonoBehaviour
     {
         return Quaternion.Euler(threeD ? rotationEuler3D : rotationEuler2D);
     }
-
-    /// <summary>
-    /// Essaie de récupérer la target via GameManager.instance si besoin.
-    /// </summary>
+    
     private void UpdateTargetReference()
     {
         if (target == null)
@@ -130,8 +122,6 @@ public class CameraFlip3D2D : MonoBehaviour
             }
         }
     }
-
-    // ================== APPELS PUBLICS ==================
 
     public void Flip3Dto2D()
     {
@@ -149,8 +139,6 @@ public class CameraFlip3D2D : MonoBehaviour
         StartCoroutine(Flip2Dto3DRoutine());
     }
 
-    // ================== 3D -> 2D (on garde ta version qui marche) ==================
-
     private IEnumerator Flip3Dto2DRoutine()
     {
         isFlipping = true;
@@ -162,13 +150,11 @@ public class CameraFlip3D2D : MonoBehaviour
             GameManager.instance.ChangeDimensionState(is3D);
 
         Transform currentTarget = target;
-
-        // État de départ (3D)
+        
         Vector3 startPos = transform.position;
         Quaternion startRot = transform.rotation;
-        float startFov = cam.fieldOfView; // devrait être = baseFov
-
-        // Offsets de départ / d'arrivée
+        float startFov = cam.fieldOfView; 
+        
         Vector3 startOffset = (currentTarget != null) ? (startPos - currentTarget.position) : startPos;
         Vector3 endOffset = positionOffset2D;
 
@@ -179,19 +165,14 @@ public class CameraFlip3D2D : MonoBehaviour
         {
             float t = elapsed / flipDuration;
             float eased = flipCurve.Evaluate(t);
-
-            // Rotation interpolée
             Quaternion currRot = Quaternion.Slerp(startRot, endRot, eased);
             Vector3 forward = currRot * Vector3.forward;
-
-            // Offset interpolé
+            
             Vector3 baseOffset = Vector3.Lerp(startOffset, endOffset, eased);
             Vector3 lateral = baseOffset - Vector3.Project(baseOffset, -forward);
 
-            // FOV descend : baseFov -> minFovDuringFlip
             float currFov = Mathf.Lerp(startFov, minFovDuringFlip, eased);
-
-            // Dolly pour garder une hauteur approx. constante (baseSize)
+            
             float halfRad = currFov * Mathf.Deg2Rad * 0.5f;
             float dist = baseSize / Mathf.Tan(halfRad);
 
@@ -210,8 +191,7 @@ public class CameraFlip3D2D : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-
-        // Snap final en 2D, mapping respecté : size = baseFov / mappingRatio
+        
         Vector3 finalPos;
         if (currentTarget != null)
             finalPos = currentTarget.position + positionOffset2D;
@@ -222,16 +202,15 @@ public class CameraFlip3D2D : MonoBehaviour
         transform.rotation = Quaternion.Euler(rotationEuler2D);
 
         cam.orthographic = true;
-        cam.orthographicSize = baseSize; // = baseFov / mappingRatio
-        cam.fieldOfView = baseFov;       // ref pour le retour
+        cam.orthographicSize = baseSize; 
+        cam.fieldOfView = baseFov;     
 
 
         isFlipping = false;
 
     }
 
-    // ================== 2D -> 3D (NOUVEAU TRAVELLING COMPENSÉ) ==================
-
+    
     private IEnumerator Flip2Dto3DRoutine()
     {
         isFlipping = true;
@@ -243,8 +222,7 @@ public class CameraFlip3D2D : MonoBehaviour
             GameManager.instance.ChangeDimensionState(is3D);
         
         Transform currentTarget = target;
-
-        // 0) On force un état 2D "propre" avant de commencer
+        
         Quaternion rot2D = Quaternion.Euler(rotationEuler2D);
         Quaternion rot3D = Quaternion.Euler(rotationEuler3D);
 
@@ -255,16 +233,14 @@ public class CameraFlip3D2D : MonoBehaviour
         transform.rotation = rot2D;
         cam.orthographic = true;
         cam.orthographicSize = baseSize;
-
-        // 1) On bascule DIRECT en perspective avec FOV minimal
+        
         cam.orthographic = false;
         float startFov = minFovDuringFlip;
         cam.fieldOfView = startFov;
 
-        // On calcule la position de départ en perspective pour garder la même échelle (baseSize)
+      
         Vector3 forward0 = rot2D * Vector3.forward;
-
-        // Offset de base au début : offset 2D
+        
         Vector3 baseOffset2D = positionOffset2D;
         Vector3 lateral2D = baseOffset2D - Vector3.Project(baseOffset2D, -forward0);
 
@@ -280,12 +256,10 @@ public class CameraFlip3D2D : MonoBehaviour
         {
             startPosPersp = lateral2D - forward0 * dist0;
         }
-
-        // 2) State de départ du flip en 2D->3D (en perspective déjà)
+        
         Vector3 startPos = startPosPersp;
         Quaternion startRot = rot2D;
-
-        // Offsets de référence (pour interpolation)
+        
         Vector3 baseOffset3D = positionOffset3D;
 
         float elapsed = 0f;
@@ -293,18 +267,14 @@ public class CameraFlip3D2D : MonoBehaviour
         {
             float t = elapsed / flipDuration;
             float eased = flipCurve.Evaluate(t);
-
-            // Rotation interpolée 2D -> 3D
+            
             Quaternion currRot = Quaternion.Slerp(startRot, rot3D, eased);
             Vector3 forward = currRot * Vector3.forward;
-
-            // Offset interpolé entre 2D et 3D (en monde)
+            
             Vector3 baseOffset = Vector3.Lerp(baseOffset2D, baseOffset3D, eased);
-
-            // On garde seulement la partie latérale, la distance sera gérée par le dolly
+            
             Vector3 lateral = baseOffset - Vector3.Project(baseOffset, -forward);
-
-            // FOV qui augmente : minFovDuringFlip -> baseFov
+            
             float currFov = Mathf.Lerp(startFov, baseFov, eased);
             float halfRad = currFov * Mathf.Deg2Rad * 0.5f;
             float dist = baseSize / Mathf.Tan(halfRad);
@@ -319,8 +289,7 @@ public class CameraFlip3D2D : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-
-        // 3) Snap final en 3D cohérent avec ton offset 3D
+        
         Vector3 endPos;
         if (currentTarget != null)
             endPos = currentTarget.position + positionOffset3D;

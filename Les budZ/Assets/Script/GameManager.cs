@@ -13,10 +13,9 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
     
-    
+    public List<PlayerMovement3D> allPlayers = new List<PlayerMovement3D>();
     public bool is3d;
     public int nextPlayerID = 1;
-    [SerializeField] private PauseMenu pauseMenu;
 
     public int fileID;
     
@@ -97,7 +96,7 @@ public class GameManager : MonoBehaviour
     [Header("État (lecture seule)")] 
     [SerializeField] private int prochainPalier;   // Palier à atteindre (démarre à basePalier)
     [SerializeField] private int niveauxGagnes = 0;
-    public LevelUpFloaty levelUpPrefab;
+
     public int Score;
 
     public int BluePrint;
@@ -219,6 +218,29 @@ public class GameManager : MonoBehaviour
 
     public int test = 1;
 
+    [Header("Versus (Party Timer)")]
+    [Tooltip("Active le mode versus (timer + classement sur scoreVersus).")]
+    public bool useVersusTimer = false;
+
+    [Tooltip("Durée de la partie en secondes.")]
+    public float versusMatchDuration = 170f;
+
+    [NonSerialized] public bool versusMatchStarted = false;
+    [NonSerialized] public bool versusMatchFinished = false;
+
+    private float versusTimer = 0f;
+
+
+    public float VersusTimer => versusTimer;
+    
+    public string GetFormattedVersusTimer()
+    {
+        float clamped = Mathf.Max(0f, versusTimer);
+        TimeSpan ts = TimeSpan.FromSeconds(clamped);
+        return $"{ts.Minutes:00}:{ts.Seconds:00}";
+    }
+
+    
     public event System.Action<bool> OnDimensionChanged;
     
     void Start()
@@ -304,23 +326,7 @@ public class GameManager : MonoBehaviour
         
         if (newSceneLoad && !newSaveFileLoaded)
         {
-            if (currentMaxScoreInLevel > 0)
-            {
-                maxScoreInLevel = currentMaxScoreInLevel;
-            }
-            else
-            {
-                MaxScoreLevel();
-            }
 
-            if (currentBluePrintInLevel > 0)
-            {
-                maxBluePrintInLevel = currentBluePrintInLevel;
-            }
-            else
-            {
-                MaxBluePrintLevel();
-            }
 
             if (SoundManager.Instance.gameObject.transform.GetChild(0).gameObject.GetComponent<AudioSource>().clip != null)
             {
@@ -344,23 +350,7 @@ public class GameManager : MonoBehaviour
 
         
         // À chaque rechargement de scène, détruit les collectibles dont l'ID figure dans la liste permanente
-        Collectible[] collectibles = FindObjectsOfType<Collectible>();
-        foreach (Collectible c in collectibles)
-        {
-            if (collectedCollectibles.Contains(c.uniqueId))
-            {
-                Destroy(c.gameObject);
-            }
-        }
 
-        BluePrint[] BluePrints = FindObjectsOfType<BluePrint>();
-        foreach (BluePrint c in BluePrints)
-        {
-            if (collectedBluePrint.Contains(c.uniqueId))
-            {
-                Destroy(c.gameObject);
-            }
-        }
         
         currentSceneName = scene.name;
         
@@ -372,6 +362,12 @@ public class GameManager : MonoBehaviour
 
     }
 
+    
+    public void RegisterPlayer(PlayerMovement3D p)
+    {
+        if (!allPlayers.Contains(p))
+            allPlayers.Add(p);
+    }
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
@@ -379,6 +375,8 @@ public class GameManager : MonoBehaviour
             ReloadScene();
         }
          
+        UpdateVersusTimer();
+        CheckRestartVotes();
         UpdatePlayTime();
 
         //LevelUp();
@@ -386,6 +384,127 @@ public class GameManager : MonoBehaviour
         //ScoreText.text = Score.ToString();
 
 
+    }
+    
+    public void CheckRestartVotes()
+    {
+        if (!useVersusTimer || !versusMatchFinished)
+            return;
+
+        // 🔒 Uniquement sur le serveur
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+            return;
+
+        int totalPlayers   = 0;
+        int votesForRestart = 0;
+
+        // ✅ On se base en priorité sur les clients connectés (plus robuste que FindObjectsOfType)
+        var connectedClients = NetworkManager.Singleton.ConnectedClientsList;
+        if (connectedClients != null && connectedClients.Count > 0)
+        {
+            foreach (var client in connectedClients)
+            {
+                var playerObj = client.PlayerObject;
+                if (playerObj == null) 
+                    continue;
+
+                var p = playerObj.GetComponentInChildren<PlayerMovement3D>();
+                if (p == null) 
+                    continue;
+                if (!p.IsSpawned) 
+                    continue;
+
+                totalPlayers++;
+
+                if (p.restartVote.Value)
+                    votesForRestart++;
+            }
+        }
+        else
+        {
+            // 🔁 Fallback au cas où : on revient à la scène (dev tools, etc.)
+            PlayerMovement3D[] allPlayers = FindObjectsOfType<PlayerMovement3D>();
+            foreach (var p in allPlayers)
+            {
+                if (p == null) continue;
+                if (!p.IsSpawned) continue;
+
+                totalPlayers++;
+                if (p.restartVote.Value)
+                    votesForRestart++;
+            }
+        }
+
+        Debug.Log($"[Versus] Votes restart : {votesForRestart}/{totalPlayers}");
+
+        // Quand tous les joueurs connectés ont voté, on relance la partie
+        if (totalPlayers > 0 && votesForRestart == totalPlayers)
+        {
+            RestartVersusMatch();
+        }
+    }
+
+    
+    public void SyncVersusStateFromServer(float timerValue)
+    {
+        // Appelé par les clients via un ClientRpc côté PlayerMovement3D
+        versusTimer = timerValue;
+        versusMatchStarted = true;
+        versusMatchFinished = false;
+    }
+
+
+
+
+    
+    public void RestartVersusMatch()
+    {
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+            return;
+
+        Debug.Log("[Versus] All players voted -> restarting match.");
+        
+        versusTimer = versusMatchDuration;
+        versusMatchStarted = true;
+        versusMatchFinished = false;
+        
+        var connectedClients = NetworkManager.Singleton.ConnectedClientsList;
+
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+            if (!p.IsSpawned) continue;
+
+            p.SyncVersusStateClientRpc(versusTimer);
+
+            p.cannotMove = false;
+            p.SetCannotMoveClientRpc(false);
+
+            p.restartVote.Value = false;
+            p.scoreVersus.Value = 0;
+            p.hasSuperCollectible.Value = false;
+            p.isDead.Value = false;
+
+            p.Respawn();
+        }
+    }
+
+
+
+
+
+    private void UpdateVersusTimer()
+    {
+        if (!useVersusTimer) return;
+        if (!versusMatchStarted || versusMatchFinished) return;
+        if (isPaused) return;
+
+        versusTimer -= Time.deltaTime;
+        if (versusTimer <= 0f)
+        {
+            versusTimer = 0f;
+            EndVersusMatch();
+        }
     }
 
     private void SpawnPlayers()
@@ -462,7 +581,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("test3");
         
     }
-    // tout en haut des autres champs du GameManager
+
 
     [Header("Key Items (Objets clés)")]
     [SerializeField] private List<KeyObjData> keyItems = new List<KeyObjData>();
@@ -661,50 +780,7 @@ public class GameManager : MonoBehaviour
 
 
     
-
-    private void LevelUp()
-    {
-        // Utilise >= (et pas ==) pour ne pas rater un palier si le score saute.
-        while (XP >= prochainPalier)
-        {
-            // Récompense
-            maxLife += lifePerLevel;
-            niveauxGagnes++;
-
-            // Calcule l'écart vers le prochain palier avec le multiplicateur ACTUEL
-            int increment = Mathf.Max(1, Mathf.CeilToInt(basePalier * multiplicateur));
-            prochainPalier += increment;
-
-            // Augmente le multiplicateur pour les paliers suivants
-            multiplicateur += ajout;
-
-                            
-            if (player1Location)
-            {
-                players[0].currentLife.Value = maxLife;
-                LevelUpFloaty.Spawn(levelUpPrefab, players[0].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
-            }
-                
-
-            if (player2Location)
-            {
-                players[1].currentLife.Value = maxLife;
-                LevelUpFloaty.Spawn(levelUpPrefab, players[1].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
-            }
-
-            if (player3Location)
-            {
-                players[2].currentLife.Value = maxLife;
-                LevelUpFloaty.Spawn(levelUpPrefab, players[2].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
-            }
-
-            if (player4Location)
-            {
-                players[3].currentLife.Value = maxLife;
-                LevelUpFloaty.Spawn(levelUpPrefab, players[3].transform /*la cible à suivre*/, true /*parenter*/, new Vector3(0f, 0f, 0f));
-            }
-        }
-    }
+    
 
     private bool WaitAtStart;
     
@@ -1149,50 +1225,61 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void MaxScoreLevel()
-    {
-        Collectible[] collectibles = FindObjectsOfType<Collectible>();
-        foreach (Collectible c in collectibles)
-        {
-            if (c.gameObject.GetComponent<Collectible>().score > 0)
-            {
-                maxScoreInLevel += c.gameObject.GetComponent<Collectible>().score;
-            }
-        }
-    }
-
-
-    public BluePrint[] BluePrintslist;
-
-    public void MaxBluePrintLevel()
-    {
-        BluePrint[] BluePrints = FindObjectsOfType<BluePrint>();
-        foreach (BluePrint c in BluePrints)
-        {
-            if (c.gameObject.GetComponent<BluePrint>().score > 0)
-            {
-                maxBluePrintInLevel += c.gameObject.GetComponent<BluePrint>().score;
-            }
-
-            BluePrintslist = BluePrints;
-        }
-    }
-    
-    #region Pause Menu
-
-    public void TogglePause()
-    {
-        isPaused = pauseMenu.Toggle();
-    }
-    
-    #endregion
 
     public int AssignePlayerID()
     {
+        
         nextPlayerID++;
-        return nextPlayerID-1;
+        // ID du joueur qui vient de spawn : 1, 2, 3...
+        int assignedID = nextPlayerID;
+
+        // On prépare l'ID pour le prochain joueur
+        
+
+        // Mode versus : on démarre quand au moins 3 joueurs ont un ID
+        if (useVersusTimer && !versusMatchStarted)
+        {
+            int playerCount = assignedID;  // comme on commence à 1, l'ID == nb de joueurs
+
+            if (playerCount >= 3)
+            {
+                StartVersusMatch();
+            }
+        }
+
+        return assignedID;
     }
+
+
     
+    public void StartVersusMatch()
+    {
+        versusTimer = versusMatchDuration;
+        versusMatchStarted = true;
+        versusMatchFinished = false;
+        Debug.Log("[Versus] Partie lancée, durée = " + versusMatchDuration + "s");
+    }
+
+    private void EndVersusMatch()
+    {
+        if (versusMatchFinished) return;
+
+        versusMatchFinished = true;
+        versusTimer = 0f;
+        Debug.Log("[Versus] Fin de partie, calcul du classement.");
+
+        // On bloque tous les joueurs (côté gameplay, les inputs sont déjà conditionnés par cannotMove)
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i] != null)
+            {
+                players[i].cannotMove = true;
+            }
+        }
+
+        // Le reste (affichage du classement) sera géré côté PlayerMovement3D
+    }
+
     
     private void UpdatePlayTime()
     {

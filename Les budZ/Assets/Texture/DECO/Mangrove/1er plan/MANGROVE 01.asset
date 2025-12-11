@@ -20,15 +20,15 @@ MonoBehaviour:
     range3D: {x: 0.05, y: 3, z: 2.95}
     depthDelta: 0
   global_range_manual:
-    range2D: {x: -1000, y: 0, z: 1001}
-    range3D: {x: 0, y: 50, z: 50}
+    range2D: {x: 0, y: 0, z: 1}
+    range3D: {x: 0, y: 100, z: 100}
     depthDelta: 0
   global_range_default:
     range2D: {x: 0, y: 0, z: 1}
     range3D: {x: 0, y: 1, z: 1}
     depthDelta: 0
   global_range_2D_dependency:
-    range2D: {x: 0, y: 0, z: 1}
+    range2D: {x: 0, y: 166, z: 167}
     range3D: {x: 0, y: 0, z: 0}
     depthDelta: 0
   depthDelta3DManagementType: 1
@@ -92,7 +92,7 @@ MonoBehaviour:
         useFixedRotation: 0
         fixedRotationAngle: 90
         emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
+        mirrorWallDecorations: 0
         continuousDistributionSettings:
           margin: 0
           emptyDistanceToEdges: 0
@@ -104,11 +104,11 @@ MonoBehaviour:
           distributedAmount: 10
           emptyDistanceToEdges: 0
         distanceDistributionSettings:
-          distance: 1
+          distance: 0
           startAt: 0
           coverage: 0
           emptyDistanceToEdges: 0
-          distributionType: 1
+          distributionType: 0
         amountLimitData:
           amountLimitType: 0
         renderOptions:
@@ -118,35 +118,35 @@ MonoBehaviour:
           sortLayers:
             layer: 0
             sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
+            orderInLayerMin: 0
+            orderInLayerMax: 0
             useSortingGroupsForObjects: 1
           sort3D:
-            depthDelta: 0.18
+            depthDelta: 0
             depthMin: 0
-            depthMax: 50
+            depthMax: 100
           renderMaterial: {fileID: 0}
           tintColor: {r: 1, g: 1, b: 1, a: 1}
           useTint: 0
       range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 50, z: 50}
-        depthDelta: 0.18
+        range2D: {x: 0, y: 0, z: 1}
+        range3D: {x: 0, y: 100, z: 100}
+        depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.05, y: 0.4011905, z: 0.35119048}
-        depthDelta: 0.017559525
+        range3D: {x: 0.05, y: 1.4547619, z: 1.4047619}
+        depthDelta: 0.0702381
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
         depthDelta: 0
       range_2D_dependency:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.05, y: 2.8595126, z: 2.8095126}
-        depthDelta: 0.1404875
+        range3D: {x: 0, y: 0, z: 0}
+        depthDelta: 0
       needsToRefreshTemporalData: 0
       tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: 4cf125ac4b0303346a5d53882d7003b4, type: 2}
+      group: {fileID: 11400000, guid: 423ab55fa51a50947ba26b4b821d233c, type: 2}
     - enabled: 1
       unfolded: 1
       hasDifferencesWithBaseGroupSettings: 0
@@ -154,8 +154,8 @@ MonoBehaviour:
       overrideGroupData:
         distributionType: 1
         sequenceType: 1
-        relativeOffsetMin: 0.4
-        relativeOffsetMax: 0.4
+        relativeOffsetMin: 0.33
+        relativeOffsetMax: 0.33
         absoluteOffsetMin: 0
         absoluteOffsetMax: 0
         scaleData:
@@ -163,17 +163,17 @@ MonoBehaviour:
           scaleByListData:
             scales:
             - {x: 1, y: 1, z: 1}
-        minScale: 0.25
-        maxScale: 0.75
+        minScale: 0.59
+        maxScale: 1.2
         useProportionalScale: 1
         vecMinScale: {x: 1, y: 1, z: 1}
         vecMaxScale: {x: 1, y: 1, z: 1}
         useFixedRotation: 0
         fixedRotationAngle: 90
         emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
+        mirrorWallDecorations: 0
         continuousDistributionSettings:
-          margin: -2.54
+          margin: -14.68
           emptyDistanceToEdges: 0
         randomDistributionSettings:
           density: 0.5
@@ -183,11 +183,11 @@ MonoBehaviour:
           distributedAmount: 10
           emptyDistanceToEdges: 0
         distanceDistributionSettings:
-          distance: 1
+          distance: 0
           startAt: 0
           coverage: 0
           emptyDistanceToEdges: 0
-          distributionType: 1
+          distributionType: 0
         amountLimitData:
           amountLimitType: 0
         renderOptions:
@@ -203,18 +203,18 @@ MonoBehaviour:
           sort3D:
             depthDelta: 0
             depthMin: 0
-            depthMax: 24.572525
+            depthMax: 100
           renderMaterial: {fileID: 0}
           tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
           useTint: 0
       range_manual:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 24.572525, z: 24.572525}
+        range3D: {x: 0, y: 100, z: 100}
         depthDelta: 0
       range_auto:
         range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.41875002, y: 0.7699405, z: 0.35119048}
-        depthDelta: 0.017559525
+        range3D: {x: 1.525, y: 2.929762, z: 1.4047619}
+        depthDelta: 0.0702381
       range_default:
         range2D: {x: 0, y: 0, z: 1}
         range3D: {x: 0, y: 1, z: 1}
@@ -225,478 +225,4 @@ MonoBehaviour:
         depthDelta: 0
       needsToRefreshTemporalData: 0
       tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: c5b4070131a9e7d4d94965d3fa2e44a9, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 2
-        sequenceType: 1
-        relativeOffsetMin: 0.45
-        relativeOffsetMax: 0.5
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.5
-        maxScale: 1
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: 8.48
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.23437501
-          emptyDistanceToEdges: 1.82
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0.18
-            depthMin: 10.60427
-            depthMax: 46.904766
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 10.60427, y: 46.904766, z: 36.300495}
-        depthDelta: 0.18
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0.7875, y: 1.1386905, z: 0.35119045}
-        depthDelta: 0.017559523
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: 423ab55fa51a50947ba26b4b821d233c, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 0
-        sequenceType: 1
-        relativeOffsetMin: 0.33
-        relativeOffsetMax: 0.33
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.25
-        maxScale: 0.75
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: -2.54
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.5
-          emptyDistanceToEdges: 0
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0
-            depthMin: 0
-            depthMax: 41.587303
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 41.587303, z: 41.587303}
-        depthDelta: 0
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.15625, y: 1.5074404, z: 0.35119045}
-        depthDelta: 0.017559523
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: 453798805a99e714081c349870f5a502, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 1
-        sequenceType: 1
-        relativeOffsetMin: 0.51
-        relativeOffsetMax: 0.51
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.18
-        maxScale: 0.44
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: 20
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.049999498
-          emptyDistanceToEdges: 6.83
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0
-            depthMin: 1.126437
-            depthMax: 22.460321
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 1.126437, y: 22.460321, z: 21.333885}
-        depthDelta: 0
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.525, y: 1.8761904, z: 0.35119045}
-        depthDelta: 0.017559523
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: a2cc7830ac2cdb2448ae063a25db2bfc, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 2
-        sequenceType: 1
-        relativeOffsetMin: 0.33
-        relativeOffsetMax: 0.33
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.18
-        maxScale: 0.44
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: 16.19
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.049999498
-          emptyDistanceToEdges: 6.83
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0.18
-            depthMin: 0
-            depthMax: 33.571976
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 33.571976, z: 33.571976}
-        depthDelta: 0.18
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 1.8937501, y: 2.2449405, z: 0.35119045}
-        depthDelta: 0.017559523
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: 57acde733b273c0479b57b1de65b1c97, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 2
-        sequenceType: 1
-        relativeOffsetMin: 0.51
-        relativeOffsetMax: 0.51
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.18
-        maxScale: 0.44
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: 16.19
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.049999498
-          emptyDistanceToEdges: 6.83
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0.18
-            depthMin: 1.5442529
-            depthMax: 16.11111
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 1.5442529, y: 16.11111, z: 14.566858}
-        depthDelta: 0.18
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 2.2625, y: 2.6136906, z: 0.35119057}
-        depthDelta: 0.017559528
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: 2509b2d05445d0346b43b09f7e9b608d, type: 2}
-    - enabled: 1
-      unfolded: 1
-      hasDifferencesWithBaseGroupSettings: 0
-      groupSettingsDataSource: 1
-      overrideGroupData:
-        distributionType: 1
-        sequenceType: 1
-        relativeOffsetMin: 0.49
-        relativeOffsetMax: 0.49
-        absoluteOffsetMin: 0
-        absoluteOffsetMax: 0
-        scaleData:
-          scaleType: 0
-          scaleByListData:
-            scales:
-            - {x: 1, y: 1, z: 1}
-        minScale: 0.18
-        maxScale: 0.44
-        useProportionalScale: 1
-        vecMinScale: {x: 1, y: 1, z: 1}
-        vecMaxScale: {x: 1, y: 1, z: 1}
-        useFixedRotation: 0
-        fixedRotationAngle: 90
-        emptyDistanceToEdges: 0
-        mirrorWallDecorations: 1
-        continuousDistributionSettings:
-          margin: 20
-          emptyDistanceToEdges: 0
-        randomDistributionSettings:
-          density: 0.049999498
-          emptyDistanceToEdges: 6.83
-        evenlyDistributionSettings:
-          distributionType: 1
-          distributedAmount: 10
-          emptyDistanceToEdges: 0
-        distanceDistributionSettings:
-          distance: 1
-          startAt: 0
-          coverage: 0
-          emptyDistanceToEdges: 0
-          distributionType: 1
-        amountLimitData:
-          amountLimitType: 0
-        renderOptions:
-          setGameObjectLayer: 0
-          setGameObjectTag: 0
-          renderOrderType: 0
-          sortLayers:
-            layer: 0
-            sortingLayerId: 0
-            orderInLayerMin: -1000
-            orderInLayerMax: -1
-            useSortingGroupsForObjects: 1
-          sort3D:
-            depthDelta: 0
-            depthMin: 0
-            depthMax: 35.06349
-          renderMaterial: {fileID: 0}
-          tintColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
-          useTint: 0
-      range_manual:
-        range2D: {x: -1000, y: -1, z: 1000}
-        range3D: {x: 0, y: 35.06349, z: 35.06349}
-        depthDelta: 0
-      range_auto:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 2.6312501, y: 2.9824407, z: 0.35119057}
-        depthDelta: 0.017559528
-      range_default:
-        range2D: {x: 0, y: 0, z: 1}
-        range3D: {x: 0, y: 1, z: 1}
-        depthDelta: 0
-      range_2D_dependency:
-        range2D: {x: 0, y: 0, z: -1}
-        range3D: {x: 0, y: 0, z: -1}
-        depthDelta: 0
-      needsToRefreshTemporalData: 0
-      tintFromMaterial: {r: 1, g: 1, b: 1, a: 1}
-      group: {fileID: 11400000, guid: f8e5accdceec02c4c91a736b6044ed9a, type: 2}
+      group: {fileID: 11400000, guid: 4cf125ac4b0303346a5d53882d7003b4, type: 2}

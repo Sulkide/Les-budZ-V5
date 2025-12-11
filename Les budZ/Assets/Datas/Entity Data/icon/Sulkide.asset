@@ -25,8 +25,14 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 42528f590e2e0124ab616045b967e3d5, type: 3}
     frameTime: 0.12
   damage:
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: a6bbeb22f60007b489856ee643408775, type: 3}
+    - {fileID: 21300000, guid: 74508e56a36a7e041944c0617841b2f4, type: 3}
+    - {fileID: 21300000, guid: 9e8b6d1d0200e0e4b9cf36337212acbc, type: 3}
     frameTime: 0.12
   dead:
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 9c41a1f6f3aac4342935921c050a0ee9, type: 3}
+    - {fileID: 21300000, guid: e64e01352b011024fa4a3cd47aea6459, type: 3}
+    - {fileID: 21300000, guid: 395dce346d656d241acf6e1960b472b5, type: 3}
     frameTime: 0.12

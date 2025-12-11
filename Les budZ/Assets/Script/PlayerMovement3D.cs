@@ -63,6 +63,12 @@ public class PlayerMovement3D : NetworkBehaviour
     public PlayerIcon playerIconData;       
     private Coroutine iconAnimationCoroutine;
     private PlayerIconState currentIconState = PlayerIconState.Idle;
+    public TextMeshProUGUI versusTimerTMP;          
+    public GameObject versusResultPanel;            
+    public TextMeshProUGUI[] versusResultLines;    
+    private bool versusResultShown = false;
+    public TextMeshProUGUI playerNameTMP;  
+    private bool hasVotedRestart = false;
     
     public enum PlayerIconState
     {
@@ -147,7 +153,9 @@ public class PlayerMovement3D : NetworkBehaviour
     public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> scoreVersus = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> hasSuperCollectible = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
+    public NetworkVariable<bool> restartVote =
+        new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    
     [Space(5)]
     [Header("References")]
     public PlayerData data;
@@ -313,7 +321,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Awake()
     {
-        playerID = GameManager.instance.AssignePlayerID();
+        playerID = GameManager.instance.AssignePlayerID()-1;
         gameObject.name = "Player " + playerID;
         if (gameObject.transform.parent != null)
         {
@@ -503,12 +511,18 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         netAnimationState.OnValueChanged += OnAnimationChanged;
         scoreVersus.OnValueChanged += OnScoreVersusChanged;
-    
-        UpdateScoreVersusUI(scoreVersus.Value);
+        GameManager.instance.RegisterPlayer(this);
+        hasVotedRestart = false; 
 
+        UpdateScoreVersusUI(scoreVersus.Value);
 
         if (playerCanvas != null)
             playerCanvas.SetActive(IsOwner);
+    
+        if (versusResultPanel != null)
+            versusResultPanel.SetActive(false);
+
+        versusResultShown = false;
 
         if (IsOwner)
         {
@@ -541,7 +555,16 @@ public class PlayerMovement3D : NetworkBehaviour
     private void Update()
     {
         if (!IsOwner) return;
+
+ 
+        UpdateVersusUI();
+
         
+        if (GameManager.instance != null && GameManager.instance.versusMatchFinished)
+        {
+            cannotMove = true;
+        }
+
         if (isDead.Value || IsRagdoll)
             return;
 
@@ -586,7 +609,100 @@ public class PlayerMovement3D : NetworkBehaviour
         HandleGlideState();
         HandleDashState();
         HandleAttackState();
+
+        UpdatePlayerNameUI();
     }
+    
+    private void UpdateVersusUI()
+    {
+        var gm = GameManager.instance;
+        if (gm == null || !gm.useVersusTimer)
+            return;
+        
+        if (gm.versusMatchStarted && !gm.versusMatchFinished)
+        {
+            if (versusResultShown)
+            {
+                versusResultShown = false;
+                if (versusResultPanel != null)
+                    versusResultPanel.SetActive(false);
+            }
+
+            hasVotedRestart = false;
+
+            if (respawnTextTMP != null)
+                respawnTextTMP.gameObject.SetActive(false);
+            if (respawnTextUI != null)
+                respawnTextUI.gameObject.SetActive(false);
+        }
+
+        if (versusTimerTMP != null)
+        {
+            if (!gm.versusMatchStarted && !gm.versusMatchFinished)
+            {
+                versusTimerTMP.text = "En attente d'un autre joueur...";
+            }
+            else
+            {
+                versusTimerTMP.text = gm.GetFormattedVersusTimer();
+            }
+        }
+
+        if (gm.versusMatchFinished && !versusResultShown)
+        {
+            versusResultShown = true;
+            ShowVersusResults();
+        }
+    }
+
+
+
+
+    private void ShowVersusResults()
+    {
+        if (versusResultPanel == null || versusResultLines == null || versusResultLines.Length == 0)
+            return;
+
+        PlayerMovement3D[] allPlayers = FindObjectsOfType<PlayerMovement3D>(true);
+
+        List<PlayerMovement3D> list = new List<PlayerMovement3D>();
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+        
+            if (!p.IsSpawned) continue;
+
+            list.Add(p);
+        }
+
+        if (list.Count == 0)
+            return;
+
+        list.Sort((a, b) => b.scoreVersus.Value.CompareTo(a.scoreVersus.Value));
+        for (int i = 0; i < versusResultLines.Length; i++)
+        {
+            var line = versusResultLines[i];
+            if (line == null) 
+                continue;
+
+            if (i < list.Count)
+            {
+                var p = list[i];
+                string playerName = p.name; 
+                int score = p.scoreVersus.Value;
+
+                line.gameObject.SetActive(true);
+                line.text = $"{i + 1}. {playerName} - {score} pts";
+            }
+            else
+            {
+                line.gameObject.SetActive(false);
+            }
+        }
+
+        versusResultPanel.SetActive(true);
+    }
+
 
 
     void FixedUpdate()
@@ -671,24 +787,70 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnPausePressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!IsOwner) return;
+
+        var gm = GameManager.instance;
+        
+        if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
+        {
+            Debug.Log("[Versus] Pause pressed -> Quit application");
+            Application.Quit();
+            return;
+        }
+
         Debug.Log("OnPausePressed");
     }
 
+
     private void OnStartPressed(InputAction.CallbackContext obj)
     {
-        
         if (!IsOwner) return;
+
+        var gm = GameManager.instance;
+        
+        if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
+        {
+            if (!restartVote.Value && !hasVotedRestart)
+            {
+                hasVotedRestart = true;
+                Debug.Log($"[Versus] Player {playerID} pressed Start to vote restart.");
+                SendRestartVoteServerRpc();
+                
+                if (respawnTextTMP != null)
+                {
+                    respawnTextTMP.gameObject.SetActive(true);
+                    respawnTextTMP.text = "En attente des autres joueurs...";
+                }
+                if (respawnTextUI != null)
+                {
+                    respawnTextUI.gameObject.SetActive(true);
+                    respawnTextUI.text = "En attente des autres joueurs...";
+                }
+            }
+
+            return;
+        }
+
         Debug.Log("OnStartPressed");
 
-        // On ne peut respawn que si :
-        // - on est mort
-        // - le cooldown est terminé
+
         if (isDead.Value && canPressRespawn)
         {
             RequestRespawnServerRpc();
         }
     }
+
+    
+    [ServerRpc(RequireOwnership = true)]
+    private void SendRestartVoteServerRpc()
+    {
+       
+        restartVote.Value = true;
+        Debug.Log($"[Versus] Player {playerID} voted for restart.");
+    }
+
+
+
 
     private void OnGrapReleased(InputAction.CallbackContext obj)
     {
@@ -949,6 +1111,15 @@ public class PlayerMovement3D : NetworkBehaviour
         wasGroundedLastFrame = grounded;
     }
 
+
+    private void UpdatePlayerNameUI()
+    {
+        string text = $"Player {playerID}";
+
+        if (playerNameTMP != null)
+            playerNameTMP.text = text;
+        
+    }
 
 
     private void WallCheck3D()
@@ -1552,6 +1723,7 @@ public class PlayerMovement3D : NetworkBehaviour
         Debug.Log("Player " + playerID + "just receive damage : " + amount);
         
         ApplyDamageServerRpc(amount, facing);
+        UpdateIconFromAnimation("isDamaged");
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -1638,8 +1810,6 @@ public class PlayerMovement3D : NetworkBehaviour
     private IEnumerator CrushRoutine(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
     {
         if (duration == 0) yield break;
-
-        // Réinit propre
         isCrushed = true;
         crushedTapActionLeft = 0;
         crushTapInProgress = false;
@@ -1858,30 +2028,47 @@ public class PlayerMovement3D : NetworkBehaviour
         
         StartRecoveryClientRpc();
     }
-    
     [ServerRpc(RequireOwnership = true)]
     private void RequestRespawnServerRpc()
     {
-        if (!isDead.Value) return;
+        var gm = GameManager.instance;
+        if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
+        {
+            Debug.Log($"[Versus] Ignore individual respawn request from player {playerID} because match is finished.");
+            return;
+        }
+
+        if (!isDead.Value) 
+            return;
 
         Respawn();
     }
+    
+    
+    [ClientRpc]
+    public void SetCannotMoveClientRpc(bool value)
+    {
+        cannotMove = value;
+    }
+
 
     [ClientRpc]
     private void RespawnClientRpc(Vector3 spawnPos)
     {
         transform.position = spawnPos;
-        
+    
         if (ragdollController != null)
             ragdollController.EnableRagdoll(false);
-        
+    
         SetIconState(PlayerIconState.Idle, true);
         UpdateLifeUI(currentLife.Value, currentMaxLife);
-        
+    
         if (IsOwner)
         {
-            if (respawnTextTMP.gameObject != null)
+            if (respawnTextTMP != null)
                 respawnTextTMP.gameObject.SetActive(false);
+            if (respawnTextUI != null)
+                respawnTextUI.gameObject.SetActive(false);
 
             canPressRespawn = false;
 
@@ -1892,6 +2079,7 @@ public class PlayerMovement3D : NetworkBehaviour
             }
         }
     }
+
 
     
     
@@ -3145,6 +3333,28 @@ public class PlayerMovement3D : NetworkBehaviour
     
     #region UI
     
+    [ClientRpc]
+    public void SyncVersusStateClientRpc(float newTimer)
+    {
+        var gm = GameManager.instance;
+        if (gm != null)
+        {
+            gm.SyncVersusStateFromServer(newTimer);
+        }
+        
+        hasVotedRestart = false;
+        
+        if (respawnTextTMP != null)
+            respawnTextTMP.gameObject.SetActive(false);
+        if (respawnTextUI != null)
+            respawnTextUI.gameObject.SetActive(false);
+        
+        versusResultShown = false;
+        if (versusResultPanel != null)
+            versusResultPanel.SetActive(false);
+    }
+
+    
     public void AddScoreVersus(int amount)
     {
         if (amount == 0) return;
@@ -3514,7 +3724,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
         
-        UpdateIconFromAnimation(animationName);
+        
     }
     
     private void SwitchAnimationByNetwork(string animationName = "isDamaged")
