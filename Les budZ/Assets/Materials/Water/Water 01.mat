@@ -187,14 +187,14 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0, g: 0.018825805, b: 0.21509439, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _Color_1: {r: 0, g: 0.36866286, b: 0.4037736, a: 0}
-    - _Color_2: {r: 0.26539683, g: 0.75784564, b: 0.8037735, a: 0}
+    - _Color_1: {r: 1, g: 0, b: 0.013642311, a: 0}
+    - _Color_2: {r: 1, g: 0, b: 0.5960345, a: 0}
     - _CreaseColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flip: {r: 1, g: 1, b: 1, a: 1}
     - _FoamColor: {r: 0, g: 0.57080555, b: 1, a: 1}
     - _FoamSpeed: {r: 0.03, g: 0.02, b: 0, a: 0}
-    - _FresnelColor: {r: 1, g: 1, b: 1, a: 0}
+    - _FresnelColor: {r: 0, g: 0, b: 0, a: 0}
     - _Normal1Speed: {r: 0.05, g: 0, b: 0, a: 0}
     - _Normal2Speed: {r: -0.02, g: 0.03, b: 0, a: 0}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}

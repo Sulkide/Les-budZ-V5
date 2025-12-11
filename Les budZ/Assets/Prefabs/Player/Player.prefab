@@ -627,6 +627,8 @@ MonoBehaviour:
     m_InternalValue: 0
   scoreVersus:
     m_InternalValue: 0
+  hasSuperCollectible:
+    m_InternalValue: 0
   data: {fileID: 11400000, guid: b55f98cd1c891e64da9a2992c3655998, type: 2}
   playerControls: {fileID: 1836536088433505170}
   baseModelPrefab: {fileID: 0}
@@ -671,6 +673,10 @@ MonoBehaviour:
   cannotMove: 0
   areControllsRemoved: 0
   wasGroundedLastFrame: 0
+  superCollectibleTimerPrefab: {fileID: 1113700658409201395, guid: 3fdcbea3ada78db4fa650f2459a8c68a, type: 3}
+  superCollectibleTimerLifetime: 6
+  superCollectibleTimerPickupLockDuration: 2
+  superCollectibleDropHeight: 1
   actionMapName: CharacterControll
   actionMoveName: Move
   actionDpadName: Dpad

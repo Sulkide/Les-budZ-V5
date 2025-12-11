@@ -146,6 +146,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public NetworkVariable<bool> isCrushedNetwork = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> scoreVersus = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> hasSuperCollectible = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     [Space(5)]
     [Header("References")]
@@ -262,6 +263,16 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool trackJumpHeight { get; private set; }
     public float lastJumpButtonTime { get; private set; }
 
+    [Header("Mode versus")]
+    [SerializeField] private GameObject superCollectibleTimerPrefab;      
+    [SerializeField] private float superCollectibleTimerLifetime = 6f;    
+    [SerializeField] private float superCollectibleTimerPickupLockDuration = 2f; 
+    [SerializeField] private float superCollectibleDropHeight = 1.0f;     
+
+    private Coroutine superCollectibleCoroutine;
+    private int superCollectibleScorePerTick = 10;
+    private float superCollectibleInterval = 2f;
+    
     [Header("Nom des Actions")]
     public string actionMapName = "Gameplay";
     public string actionMoveName = "Move";
@@ -317,6 +328,12 @@ public class PlayerMovement3D : NetworkBehaviour
         defaultConstraints = rb.constraints;
 
         currentLife.Value = currentMaxLife;
+        
+        if (currentLifeTMP != null)
+            currentLifeTMP.text = currentLife.Value.ToString();
+
+        if (maxLifeTMP != null)
+            maxLifeTMP.text = currentMaxLife.ToString();
     }
 
     void Start()
@@ -486,13 +503,12 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         netAnimationState.OnValueChanged += OnAnimationChanged;
         scoreVersus.OnValueChanged += OnScoreVersusChanged;
-        
-        currentLife.OnValueChanged += OnLifeChanged;
-        UpdateLifeUI(currentLife.Value, currentMaxLife);
-        
-        SetIconState(PlayerIconState.Idle, true);
-
+    
         UpdateScoreVersusUI(scoreVersus.Value);
+
+
+        if (playerCanvas != null)
+            playerCanvas.SetActive(IsOwner);
 
         if (IsOwner)
         {
@@ -508,6 +524,7 @@ public class PlayerMovement3D : NetworkBehaviour
             rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
     }
+
 
     
     public override void OnNetworkDespawn()
@@ -528,6 +545,11 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isDead.Value || IsRagdoll)
             return;
 
+        if (currentLifeTMP != null)
+            currentLifeTMP.text = currentLife.Value.ToString();
+
+        if (maxLifeTMP != null)
+            maxLifeTMP.text = currentMaxLife.ToString();
         
         is3DNow.Value = GameManager.instance.is3d;
         isCrushedNetwork.Value = isCrushed;
@@ -634,11 +656,11 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnFlipPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
-        
+        if (!IsOwner || cannotMove || isStunned || isCrushed) return;
+        SwitchAnimation("isFlip");
         GameManager.instance.ChangeDimension();
         StartCoroutine(FlipDimensionCoolDownCoroutine(FlipDimensionCoolDown));
-        SwitchAnimation("isFlip");
+
     }
 
     private void OnSelectRPressed(InputAction.CallbackContext obj)
@@ -1537,17 +1559,26 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (isRecovery) return;
         if (amount <= 0) return;
-        
+
         CancelDash();
         CancelGlide();
 
         currentLife.Value -= amount;
 
-        if (currentLife.Value <= 0)
-            Death(facing);
+        if (hasSuperCollectible.Value)
+        {
+            Debug.Log($"[SuperBonus] Player {playerID} perd le super bonus suite à un hit.");
+            LoseSuperCollectibleAndSpawnTimer();
+        }
         
-        Debug.Log("Player " + playerID + "just Apply damage : ");
+        if (currentLife.Value <= 0)
+        {
+            Death(facing);
+        }
+
+        Debug.Log($"Player {playerID} just Apply damage : amount={amount}, life={currentLife.Value}");
     }
+
 
 
 
@@ -1729,6 +1760,11 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (isDead.Value) return;
 
+        if (hasSuperCollectible.Value)
+        {
+            LoseSuperCollectibleAndSpawnTimer();
+        }
+        
         isDead.Value = true;
         cannotMove   = true;
 
@@ -3032,6 +3068,81 @@ public class PlayerMovement3D : NetworkBehaviour
 
     #endregion
     
+    #region SUPER COLLECTIBLE VERSUS
+    
+    public void GainSuperCollectible(int scorePerTick, float intervalSeconds)
+    {
+        if (!IsServer) return;
+
+        superCollectibleScorePerTick = scorePerTick;
+        superCollectibleInterval = intervalSeconds;
+
+        hasSuperCollectible.Value = true;
+
+        if (superCollectibleCoroutine != null)
+            StopCoroutine(superCollectibleCoroutine);
+
+        superCollectibleCoroutine = StartCoroutine(SuperCollectibleRoutine());
+    }
+    
+    private IEnumerator SuperCollectibleRoutine()
+    {
+        while (hasSuperCollectible.Value && !isDead.Value)
+        {
+            yield return new WaitForSeconds(superCollectibleInterval);
+
+            if (!hasSuperCollectible.Value || isDead.Value)
+                break;
+
+            AddScoreVersus(superCollectibleScorePerTick);
+        }
+
+        superCollectibleCoroutine = null;
+    }
+
+    private void LoseSuperCollectibleAndSpawnTimer()
+    {
+        if (!IsServer) return;
+        if (!hasSuperCollectible.Value) return;
+
+        hasSuperCollectible.Value = false;
+
+        if (superCollectibleCoroutine != null)
+        {
+            StopCoroutine(superCollectibleCoroutine);
+            superCollectibleCoroutine = null;
+        }
+
+        if (superCollectibleTimerPrefab == null)
+            return;
+
+        Vector3 spawnPos = transform.position + Vector3.up * superCollectibleDropHeight;
+        Quaternion spawnRot = Quaternion.identity;
+
+        GameObject timerObj = Instantiate(superCollectibleTimerPrefab, spawnPos, spawnRot);
+        NetworkObject netObj = timerObj.GetComponent<NetworkObject>();
+
+        SuperCollectibleVersusTimer timer = timerObj.GetComponent<SuperCollectibleVersusTimer>();
+        if (timer != null)
+        {
+            timer.Initialize(
+                this,
+                superCollectibleScorePerTick,
+                superCollectibleInterval,
+                superCollectibleTimerLifetime,
+                superCollectibleTimerPickupLockDuration
+            );
+        }
+
+        if (netObj != null && !netObj.IsSpawned)
+        {
+            netObj.Spawn(true);
+        }
+    }
+
+    #endregion
+
+    
     #region UI
     
     public void AddScoreVersus(int amount)
@@ -3262,7 +3373,6 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     #endregion
-
     
     #region MISC
 
