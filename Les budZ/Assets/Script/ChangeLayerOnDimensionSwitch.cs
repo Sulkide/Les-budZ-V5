@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class ChangeLayerOnDimensionSwitch : MonoBehaviour
@@ -13,8 +14,23 @@ public class ChangeLayerOnDimensionSwitch : MonoBehaviour
     public LayerMask sameDimensionLayer;
     public LayerMask differentDimensionLayer;
 
+    public bool isPlayer;
+    private PlayerMovement3D playerMovement3D;
+
+    private void Start()
+    {
+        if (isPlayer)
+        {
+            playerMovement3D = GetComponent<PlayerMovement3D>();
+        }
+    }
+
     private void Update()
     {
+        if (isPlayer)
+        {
+            currentObjectIs3D = playerMovement3D.is3DNow.Value;
+        }
         ApplyLayer(GameManager.instance.is3d);
     }
 

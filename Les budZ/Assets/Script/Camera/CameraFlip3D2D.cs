@@ -156,6 +156,10 @@ public class CameraFlip3D2D : MonoBehaviour
         isFlipping = true;
         InitMapping();
         UpdateTargetReference();
+        
+        is3D = false;
+        if (GameManager.instance != null)
+            GameManager.instance.ChangeDimensionState(is3D);
 
         Transform currentTarget = target;
 
@@ -221,10 +225,9 @@ public class CameraFlip3D2D : MonoBehaviour
         cam.orthographicSize = baseSize; // = baseFov / mappingRatio
         cam.fieldOfView = baseFov;       // ref pour le retour
 
-        is3D = false;
+
         isFlipping = false;
-        if (GameManager.instance != null)
-            GameManager.instance.ChangeDimensionState(is3D);
+
     }
 
     // ================== 2D -> 3D (NOUVEAU TRAVELLING COMPENSÉ) ==================
@@ -235,6 +238,10 @@ public class CameraFlip3D2D : MonoBehaviour
         InitMapping();
         UpdateTargetReference();
 
+        is3D = true;
+        if (GameManager.instance != null)
+            GameManager.instance.ChangeDimensionState(is3D);
+        
         Transform currentTarget = target;
 
         // 0) On force un état 2D "propre" avant de commencer
@@ -325,9 +332,8 @@ public class CameraFlip3D2D : MonoBehaviour
         cam.orthographic = false;
         cam.fieldOfView = baseFov;
 
-        is3D = true;
+
         isFlipping = false;
-        if (GameManager.instance != null)
-            GameManager.instance.ChangeDimensionState(is3D);
+
     }
 }

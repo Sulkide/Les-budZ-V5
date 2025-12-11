@@ -2106,7 +2106,7 @@ private void StayAirAttaking()
         collider2D.enabled = false;
         RB.simulated = false;
         ragdollController.EnableRagdoll(true);
-        ragdollController.SetRagdollVelocity(currentVelocity);
+        /*ragdollController.SetRagdollVelocity(currentVelocity);
         if (isFacingRight)
         {
             ragdollController.SpinOnZ(torqueAmount: 15f, duration: 1f);
@@ -2114,7 +2114,7 @@ private void StayAirAttaking()
         else
         {
             ragdollController.SpinOnZ(torqueAmount: -15f, duration: 1f);
-        }
+        }*/
 
         GameManager.instance.PlayerDeadCheck(parentName, isDead);
 
