@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
+using TMPro;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 
@@ -13,9 +15,11 @@ public class PlayerMovement3D : NetworkBehaviour
 {
     [Header("Options General")] 
     public int playerID = 0;
+
+    public int currentMaxLife = 15;
     public float recoveryTime = 2f;
     public float currentForce = 10f;
-
+    public float respawnCooldown = 10f;
     public float gravityScale;
     public float damageCooldown = 2.5f;
     public float FlipDimensionCoolDown = 1f;
@@ -41,7 +45,34 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool canAttack = true;
     public bool canGlide = true;
 
-        
+    [Header("UI")]
+    public GameObject playerCanvas;              
+    public TextMeshProUGUI respawnTextTMP;        
+    public Text respawnTextUI;     
+    public bool DisplayScore = true;                    
+    public TextMeshProUGUI scoreVersusTMP;             
+    public Text scoreVersusUI;
+    private Coroutine scoreVersusAnimationCoroutine;
+    private Coroutine respawnCoroutine;
+    private bool canPressRespawn;    
+    public Image lifeFillImage;             
+    public TextMeshProUGUI currentLifeTMP;  
+    public TextMeshProUGUI maxLifeTMP;    
+    public Text lifeTextUI;                  
+    public Image iconImage;                  
+    public PlayerIcon playerIconData;       
+    private Coroutine iconAnimationCoroutine;
+    private PlayerIconState currentIconState = PlayerIconState.Idle;
+    
+    public enum PlayerIconState
+    {
+        Idle,
+        Attacking,
+        Damage,
+        Dead
+    }
+
+    
     [Space(5)]
     [Header("Dynamique Collider")]
     public float raycastLimit = 100f;
@@ -113,7 +144,8 @@ public class PlayerMovement3D : NetworkBehaviour
     public NetworkVariable<int> currentLife = new NetworkVariable<int>(15, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> is3DNow = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<bool> isCrushedNetwork = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-    public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+    public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<int> scoreVersus = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     [Space(5)]
     [Header("References")]
@@ -283,6 +315,8 @@ public class PlayerMovement3D : NetworkBehaviour
         playerControls.actions.Disable();   
         playerControls.enabled = false;
         defaultConstraints = rb.constraints;
+
+        currentLife.Value = currentMaxLife;
     }
 
     void Start()
@@ -440,11 +474,25 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         #endregion
+        
+        if (iconAnimationCoroutine != null)
+        {
+            StopCoroutine(iconAnimationCoroutine);
+            iconAnimationCoroutine = null;
+        }
     }
     
     public override void OnNetworkSpawn()
     {
         netAnimationState.OnValueChanged += OnAnimationChanged;
+        scoreVersus.OnValueChanged += OnScoreVersusChanged;
+        
+        currentLife.OnValueChanged += OnLifeChanged;
+        UpdateLifeUI(currentLife.Value, currentMaxLife);
+        
+        SetIconState(PlayerIconState.Idle, true);
+
+        UpdateScoreVersusUI(scoreVersus.Value);
 
         if (IsOwner)
         {
@@ -460,6 +508,17 @@ public class PlayerMovement3D : NetworkBehaviour
             rb.interpolation = RigidbodyInterpolation.Interpolate;
         }
     }
+
+    
+    public override void OnNetworkDespawn()
+    {
+        netAnimationState.OnValueChanged -= OnAnimationChanged;
+        scoreVersus.OnValueChanged -= OnScoreVersusChanged;
+        currentLife.OnValueChanged -= OnLifeChanged;
+    }
+
+
+
 
 
     private void Update()
@@ -596,8 +655,17 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnStartPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        
+        if (!IsOwner) return;
         Debug.Log("OnStartPressed");
+
+        // On ne peut respawn que si :
+        // - on est mort
+        // - le cooldown est terminé
+        if (isDead.Value && canPressRespawn)
+        {
+            RequestRespawnServerRpc();
+        }
     }
 
     private void OnGrapReleased(InputAction.CallbackContext obj)
@@ -1394,6 +1462,35 @@ public class PlayerMovement3D : NetworkBehaviour
       colliderGroundPound.enabled = value;
       colliderWeapon.enabled = value;
     }
+    
+    private Vector3 GetRespawnPosition()
+    {
+        GameObject levelObj = GameObject.FindGameObjectWithTag("Level");
+        if (levelObj == null)
+        {
+            Debug.LogWarning("PlayerMovement3D: aucun objet avec le tag 'Level' trouvé, respawn sur place.");
+            return transform.position;
+        }
+        
+        var list = levelObj.GetComponent<RespawnPointList>();
+        if (list == null)
+        {
+            Debug.LogWarning("PlayerMovement3D: script 'respawnPointList' introuvable sur l'objet Level, respawn sur place.");
+            return transform.position;
+        }
+
+        if (list.respawnPoint == null || list.respawnPoint.Count == 0)
+        {
+            Debug.LogWarning("PlayerMovement3D: aucune respawnPoint dans 'respawnPointList', respawn sur place.");
+            return transform.position;
+        }
+        
+        int index = Mathf.Clamp(playerID, 0, list.respawnPoint.Count - 1);
+        Transform point = list.respawnPoint[index];
+
+        return point != null ? point.position : transform.position;
+    }
+
 
     #endregion
     
@@ -1626,34 +1723,140 @@ public class PlayerMovement3D : NetworkBehaviour
 
     public void Death(bool facing)
     {
+        
+        if (!IsServer)
+            return;
+
         if (isDead.Value) return;
 
         isDead.Value = true;
         cannotMove   = true;
 
         Debug.Log("Death");
-    
+        
         if (rb != null)
         {
             rb.linearVelocity  = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
-    
+
+
+        OnDeathClientRpc(facing);
+    }
+
+    [ClientRpc]
+    private void OnDeathClientRpc(bool facing)
+    {
         if (ragdollController != null)
         {
-
             ragdollController.EnableRagdoll(true);
-            
             ragdollController.PlayDeathImpulse(facing);
+        }
+        
+        SetIconState(PlayerIconState.Dead, true);
+        UpdateLifeUI(currentLife.Value, currentMaxLife);
+        
+        if (IsOwner)
+        {
+            if (respawnCoroutine != null)
+                StopCoroutine(respawnCoroutine);
+
+            respawnCoroutine = StartCoroutine(RespawnCountdownRoutine());
         }
     }
 
+    private IEnumerator RespawnCountdownRoutine()
+    {
+        canPressRespawn = false;
 
+        if (respawnTextTMP != null)
+            respawnTextTMP.gameObject.SetActive(true);
 
+        float timer = respawnCooldown;
+
+        while (timer > 0f)
+        {
+            int seconds = Mathf.CeilToInt(timer);
+            SetRespawnMessage($"Vous êtes mort, respawn dans : {seconds} s");
+
+            timer -= Time.deltaTime;
+            yield return null;
+        }
+        
+        canPressRespawn = true;
+        SetRespawnMessage("Appuyez sur Start pour respawn");
+    }
+
+    private void SetRespawnMessage(string message)
+    {
+        if (!IsOwner) return; 
+
+        if (respawnTextTMP != null)
+            respawnTextTMP.text = message;
+
+        if (respawnTextUI != null)
+            respawnTextUI.text = message;
+    }
+    
     public void Respawn()
     {
+        if (!IsServer)
+            return;
+        
+        Vector3 spawnPos = GetRespawnPosition();
+        
+        transform.position = spawnPos;
+
+        if (rb != null)
+        {
+            rb.linearVelocity  = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
         isDead.Value = false;
+        cannotMove   = false;
+        
+        currentLife.Value = currentMaxLife;
+        
+        RespawnClientRpc(spawnPos);
+        
+        StartRecoveryClientRpc();
     }
+    
+    [ServerRpc(RequireOwnership = true)]
+    private void RequestRespawnServerRpc()
+    {
+        if (!isDead.Value) return;
+
+        Respawn();
+    }
+
+    [ClientRpc]
+    private void RespawnClientRpc(Vector3 spawnPos)
+    {
+        transform.position = spawnPos;
+        
+        if (ragdollController != null)
+            ragdollController.EnableRagdoll(false);
+        
+        SetIconState(PlayerIconState.Idle, true);
+        UpdateLifeUI(currentLife.Value, currentMaxLife);
+        
+        if (IsOwner)
+        {
+            if (respawnTextTMP.gameObject != null)
+                respawnTextTMP.gameObject.SetActive(false);
+
+            canPressRespawn = false;
+
+            if (respawnCoroutine != null)
+            {
+                StopCoroutine(respawnCoroutine);
+                respawnCoroutine = null;
+            }
+        }
+    }
+
     
     
     #endregion
@@ -2829,6 +3032,238 @@ public class PlayerMovement3D : NetworkBehaviour
 
     #endregion
     
+    #region UI
+    
+    public void AddScoreVersus(int amount)
+    {
+        if (amount == 0) return;
+
+        if (!IsServer)
+        {
+            RequestAddScoreVersusServerRpc(amount);
+            return;
+        }
+
+        int newValue = Mathf.Max(0, scoreVersus.Value + amount);
+        scoreVersus.Value = newValue;
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestAddScoreVersusServerRpc(int amount)
+    {
+        AddScoreVersus(amount);
+    }
+
+    private void OnScoreVersusChanged(int previousValue, int newValue)
+    {
+        if (!DisplayScore)
+        {
+            UpdateScoreVersusUI(newValue);
+            return;
+        }
+        
+        if (scoreVersusAnimationCoroutine != null)
+            StopCoroutine(scoreVersusAnimationCoroutine);
+        
+        scoreVersusAnimationCoroutine = StartCoroutine(
+            AnimateScoreVersus(previousValue, newValue)
+        );
+    }
+
+    private IEnumerator AnimateScoreVersus(int from, int to)
+    {
+        if (from == to)
+        {
+            UpdateScoreVersusUI(to);
+            scoreVersusAnimationCoroutine = null;
+            yield break;
+        }
+
+        const float duration = 1f;      
+        int direction = (to > from) ? 1 : -1;
+
+        int diff = Mathf.Abs(to - from);
+        
+        int stepMagnitude = diff < 2 ? 1 : 2;
+        int step = stepMagnitude * direction;
+
+        int steps = Mathf.CeilToInt((float)diff / stepMagnitude);
+        float stepDuration = duration / steps;
+
+        float elapsed = 0f;
+        float nextStepTime = 0f;
+        int current = from;
+        
+        UpdateScoreVersusUI(current);
+
+        while ((direction > 0 && current < to) ||
+               (direction < 0 && current > to))
+        {
+            elapsed += Time.deltaTime;
+
+            if (elapsed >= nextStepTime)
+            {
+                int remaining = to - current;
+                
+                if (direction > 0 && current + step > to ||
+                    direction < 0 && current + step < to)
+                {
+                    current = to;
+                }
+                else
+                {
+                    current += step;
+                }
+
+                UpdateScoreVersusUI(current);
+                nextStepTime += stepDuration;
+            }
+
+            yield return null;
+        }
+        
+        UpdateScoreVersusUI(to);
+        scoreVersusAnimationCoroutine = null;
+    }
+
+
+    private void UpdateScoreVersusUI(int value)
+    {
+        if (!DisplayScore) return;
+        
+        string text = $"Score : {value.ToString("D7")}";
+
+        if (scoreVersusTMP != null)
+            scoreVersusTMP.text = text;
+
+        if (scoreVersusUI != null)
+            scoreVersusUI.text = text;
+    }
+
+    private void OnLifeChanged(int previousValue, int newValue)
+    {
+        UpdateLifeUI(newValue, currentMaxLife);
+    }
+
+    private void UpdateLifeUI(int current, int max)
+    {
+        
+        current = Mathf.Clamp(current, 0, max);
+        
+        if (currentLifeTMP != null)
+            currentLifeTMP.text = current.ToString();
+
+        if (maxLifeTMP != null)
+            maxLifeTMP.text = max.ToString();
+        
+        if (lifeFillImage != null)
+        {
+            float amount = (max > 0) ? (float)current / max : 0f;
+            lifeFillImage.fillAmount = amount;
+        }
+    }
+
+
+
+
+    private void SetIconState(PlayerIconState newState, bool force = false)
+    {
+        if (!force && newState == currentIconState)
+            return;
+
+        currentIconState = newState;
+
+        if (iconAnimationCoroutine != null)
+            StopCoroutine(iconAnimationCoroutine);
+
+        iconAnimationCoroutine = StartCoroutine(PlayIconAnimationCoroutine(newState));
+    }
+
+    private PlayerIcon.IconCategory GetIconCategory(PlayerIconState state)
+    {
+        if (playerIconData == null)
+            return null;
+
+        switch (state)
+        {
+            case PlayerIconState.Idle:      return playerIconData.idle;
+            case PlayerIconState.Attacking: return playerIconData.attacking;
+            case PlayerIconState.Damage:    return playerIconData.damage;
+            case PlayerIconState.Dead:      return playerIconData.dead;
+        }
+
+        return null;
+    }
+
+    private IEnumerator PlayIconAnimationCoroutine(PlayerIconState state)
+    {
+        if (iconImage == null || playerIconData == null)
+            yield break;
+
+        var category = GetIconCategory(state);
+        if (category == null || category.frames == null || category.frames.Length == 0)
+            yield break;
+
+        float frameTime = Mathf.Max(0.01f, category.frameTime);
+        int index = 0;
+
+        while (currentIconState == state)
+        {
+            iconImage.sprite = category.frames[index];
+            iconImage.enabled = (iconImage.sprite != null);
+
+            index++;
+            if (index >= category.frames.Length)
+                index = 0;
+
+            yield return new WaitForSeconds(frameTime);
+        }
+    }
+    
+    private void UpdateIconFromAnimation(string animationName)
+    {
+        if (playerIconData == null || iconImage == null)
+            return;
+
+        // Si le joueur est mort, on force Dead
+        if (isDead.Value)
+        {
+            SetIconState(PlayerIconState.Dead);
+            return;
+        }
+
+        PlayerIconState targetState = PlayerIconState.Idle;
+
+        if (animationName == "isDamaged")
+        {
+            targetState = PlayerIconState.Damage;
+        }
+        else if (animationName == "is2DAttack" ||
+                 animationName == "is3DAttack" ||
+                 animationName == "isAirAttack" ||
+                 animationName == "isStayAttack" ||
+                 animationName == "isIdleAttack" ||
+                 animationName == "isIdleAttackStop" ||
+                 animationName == "isGroundPound" ||
+                 animationName == "isCAC" ||
+                 animationName == "isDashing" ||
+                 animationName == "isPuching")
+        {
+            targetState = PlayerIconState.Attacking;
+        }
+        else
+        {
+            targetState = PlayerIconState.Idle;
+        }
+
+        SetIconState(targetState);
+    }
+
+
+
+    #endregion
+
+    
     #region MISC
 
     public void AdaptRotationToTerrain2D(Collision collision)
@@ -2935,6 +3370,8 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             UpdateAnimationServerRpc(animationName);
         }
+        
+        UpdateIconFromAnimation(animationName);
     }
 
     
@@ -2966,6 +3403,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
+        
+        UpdateIconFromAnimation(animationName);
     }
     
     private void SwitchAnimationByNetwork(string animationName = "isDamaged")
@@ -3004,6 +3443,7 @@ public class PlayerMovement3D : NetworkBehaviour
         DisableAllAnimations();
         if (playerAnimator != null)
             playerAnimator.SetBool(animationName, true);
+        UpdateIconFromAnimation(animationName);
     }
 
     

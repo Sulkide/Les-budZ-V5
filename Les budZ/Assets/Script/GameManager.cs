@@ -381,7 +381,7 @@ public class GameManager : MonoBehaviour
          
         UpdatePlayTime();
 
-        LevelUp();
+        //LevelUp();
         
         //ScoreText.text = Score.ToString();
 

@@ -19,9 +19,9 @@ public class RagdollController : MonoBehaviour
     
     [SerializeField] private Rigidbody mainBone;
     
-    [SerializeField] private float deathUpImpulse = 2f;
+    private float deathUpImpulse = 100f;
     
-    [SerializeField] private float deathTorqueZ = 10f;
+    private float deathTorqueZ = 100f;
 
     public bool IsRagdollActive { get; private set; }
 
@@ -158,13 +158,17 @@ public class RagdollController : MonoBehaviour
 
         if (deathUpImpulse != 0f)
         {
-            target.AddForce(Vector3.up * deathUpImpulse, ForceMode.Impulse);
+            float sign = facingRight ? 1f : -1f;
+            foreach (var rb in ragdollRigidbodies)
+            {
+                rb.AddForce(new Vector3(sign, 1,0f)*deathUpImpulse, ForceMode.Impulse);
+            }
         }
         
         if (deathTorqueZ != 0f)
         {
             float sign = facingRight ? 1f : -1f;
-            target.AddTorque(new Vector3(0f, 0f, deathTorqueZ * sign), ForceMode.Impulse);
+            target.AddTorque(new Vector3(0f, 0f, deathTorqueZ * sign), ForceMode.Force);
         }
     }
 
