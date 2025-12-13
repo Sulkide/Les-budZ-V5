@@ -16,13 +16,13 @@ public static class EmbeddedMeshTools
             var mesh = mf.sharedMesh;
             if (!mesh) continue;
 
-            // Chemin vide => mesh sérialisé dans la scène (pas un asset .asset)
+            
             var path = AssetDatabase.GetAssetPath(mesh);
             if (string.IsNullOrEmpty(path))
             {
                 int tris  = mesh.triangles.Length / 3;
                 int verts = mesh.vertexCount;
-                long bytes = (long)mesh.triangles.Length * 2 + (long)verts * 12; // estimation grossière
+                long bytes = (long)mesh.triangles.Length * 2 + (long)verts * 12; 
                 total += bytes;
                 Debug.Log($"Embedded mesh: {mf.gameObject.name} | verts:{verts} tris:{tris} ~{bytes/1048576f:F1} MB", mf);
             }

@@ -35,8 +35,7 @@ public class RagdollController : MonoBehaviour
 
         if (rootRigidbody == null && pm != null)
             rootRigidbody = pm.rb;
-
-        // Colliders de gameplay à désactiver en ragdoll
+        
         rootColliders.Clear();
         if (pm != null)
         {
@@ -47,10 +46,7 @@ public class RagdollController : MonoBehaviour
             rootColliders.Add(pm.colliderGroundPound);
             rootColliders.Add(pm.colliderWeapon);
         }
-
-        // === AUTO-FILL SÉCURISÉ ===
-
-        // 1) Tous les rigidbodies enfants, sauf la racine
+        
         if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0)
         {
             var rbs = GetComponentsInChildren<Rigidbody>(true).ToList();
@@ -59,7 +55,6 @@ public class RagdollController : MonoBehaviour
             ragdollRigidbodies = rbs.ToArray();
         }
 
-        // 2) Tous les colliders enfants, sauf les colliders de gameplay
         if (ragdollColliders == null || ragdollColliders.Length == 0)
         {
             var cols = GetComponentsInChildren<Collider>(true).ToList();

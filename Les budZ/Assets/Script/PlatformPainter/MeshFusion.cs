@@ -31,8 +31,7 @@ public class MeshFusion : MonoBehaviour
     public void DoFusion()
     {
         var root = transform;
-
-        // Récupérer tous les MeshFilter descendants
+        
         var filters = root.GetComponentsInChildren<MeshFilter>(includeInactive)
                           .Where(f => f && f.sharedMesh && f.transform != root)
                           .ToList();
@@ -56,8 +55,7 @@ public class MeshFusion : MonoBehaviour
                 }
             }
         }
-
-        // Préparer les CombineInstance vers l'espace local du root
+        
         var combines = new List<CombineInstance>(filters.Count);
         foreach (var mf in filters)
         {
@@ -82,8 +80,7 @@ public class MeshFusion : MonoBehaviour
         var dstMR = root.GetComponent<MeshRenderer>();
         if (!dstMF) dstMF = Undo.AddComponent<MeshFilter>(root.gameObject);
         if (!dstMR) dstMR = Undo.AddComponent<MeshRenderer>(root.gameObject);
-
-        // Créer le mesh combiné
+        
         var combined = new Mesh
         {
             name = $"{name}_CombinedMesh",
@@ -91,33 +88,29 @@ public class MeshFusion : MonoBehaviour
         };
         combined.CombineMeshes(combines.ToArray(), true, true, false);
         combined.RecalculateBounds();
-
-        // --- NOUVEAU : Sauvegarde en asset pour persistance ---
+        
         if (saveAsAsset)
         {
             var stage = PrefabStageUtility.GetCurrentPrefabStage();
             if (stage != null)
             {
-                // En Prefab Mode : sauver en SOUS-ASSET du prefab
                 SaveMeshAsSubAssetOfPrefab(combined, stage.prefabContentsRoot);
             }
             else
             {
-                // En scène : créer un asset dans le projet
                 SaveMeshAsProjectAsset(combined, projectFolderForSceneMeshes);
             }
         }
 
-        dstMF.sharedMesh = combined; // référence l’asset (ou l’objet mémoire si saveAsAsset=false)
+        dstMF.sharedMesh = combined;
         if (targetMat) dstMR.sharedMaterial = targetMat;
 
-        // Supprimer tous les enfants
         for (int i = root.childCount - 1; i >= 0; i--)
         {
             Undo.DestroyObjectImmediate(root.GetChild(i).gameObject);
         }
 
-        // Marquer dirty
+
         var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
         if (prefabStage != null)
             EditorSceneManager.MarkSceneDirty(prefabStage.scene);
@@ -129,7 +122,6 @@ public class MeshFusion : MonoBehaviour
 
     private static void SaveMeshAsSubAssetOfPrefab(Mesh mesh, GameObject prefabRoot)
     {
-        // Nettoyer un éventuel ancien sous-asset de même nom pour éviter les doublons
         var assetPath = PrefabStageUtility.GetCurrentPrefabStage().assetPath;
         var mainObj = AssetDatabase.LoadMainAssetAtPath(assetPath);
         var subAssets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
@@ -153,10 +145,9 @@ public class MeshFusion : MonoBehaviour
     {
         if (!AssetDatabase.IsValidFolder(folder))
         {
-            // Crée la hiérarchie de dossiers si besoin
             var parts = folder.Trim('/').Split('/');
             string current = parts[0];
-            if (!AssetDatabase.IsValidFolder(current)) return; // doit commencer par "Assets"
+            if (!AssetDatabase.IsValidFolder(current)) return; 
             for (int i = 1; i < parts.Length; i++)
             {
                 string next = $"{current}/{parts[i]}";

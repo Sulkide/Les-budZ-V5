@@ -44,6 +44,12 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool canDash = true;
     public bool canAttack = true;
     public bool canGlide = true;
+    
+    [Header("FX")]
+    [SerializeField] private GameObject landFXPrefab;
+    [SerializeField] private GameObject dashFXPrefab;
+    [SerializeField] private Transform fxRoot; 
+
 
     [Header("UI")]
     public GameObject playerCanvas;              
@@ -841,13 +847,7 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     
-    [ServerRpc(RequireOwnership = true)]
-    private void SendRestartVoteServerRpc()
-    {
-       
-        restartVote.Value = true;
-        Debug.Log($"[Versus] Player {playerID} voted for restart.");
-    }
+
 
 
 
@@ -3256,7 +3256,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     #endregion
     
-    #region SUPER COLLECTIBLE VERSUS
+    #region SCORE
     
     public void GainSuperCollectible(int scorePerTick, float intervalSeconds)
     {
@@ -3329,9 +3329,16 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-
     
     #region UI
+    
+    [ServerRpc(RequireOwnership = true)]
+    private void SendRestartVoteServerRpc()
+    {
+       
+        restartVote.Value = true;
+        Debug.Log($"[Versus] Player {playerID} voted for restart.");
+    }
     
     [ClientRpc]
     public void SyncVersusStateClientRpc(float newTimer)
@@ -3583,6 +3590,65 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     #endregion
+
+    #region FX
+
+    public void PlayFX(GameObject fxPrefab, Vector3 position, Quaternion rotation)
+    {
+        if (fxPrefab == null) return;
+
+        if (IsServer)
+        {
+            PlayFXClientRpc(
+                fxPrefab.name,
+                position,
+                rotation
+            );
+        }
+        else
+        {
+            PlayFXServerRpc(
+                fxPrefab.name,
+                position,
+                rotation
+            );
+        }
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    private void PlayFXServerRpc(string fxName, Vector3 position, Quaternion rotation)
+    {
+        PlayFXClientRpc(fxName, position, rotation);
+    }
+
+    [ClientRpc]
+    private void PlayFXClientRpc(string fxName, Vector3 position, Quaternion rotation)
+    {
+        GameObject fxPrefab = GetFXByName(fxName);
+        if (fxPrefab == null) return;
+
+        GameObject fx = Instantiate(fxPrefab, position, rotation);
+
+        var ps = fx.GetComponent<ParticleSystem>();
+        if (ps != null)
+            ps.Play();
+    }
+    
+    private GameObject GetFXByName(string name)
+    {
+        if (landFXPrefab != null && landFXPrefab.name == name)
+            return landFXPrefab;
+
+        if (dashFXPrefab != null && dashFXPrefab.name == name)
+            return dashFXPrefab;
+
+        return null;
+    }
+
+
+
+
+    #endregion
     
     #region MISC
 
@@ -3781,6 +3847,14 @@ public class PlayerMovement3D : NetworkBehaviour
             isGliding = false;
             glideRequested = false;
         }
+        
+        Vector3 fxPos = groundCheckPoint != null ? groundCheckPoint.position : transform.position;
+        
+        PlayFX(
+            landFXPrefab,
+            fxPos,
+            Quaternion.identity
+        );
         
         if (isStayAirAttacking && data != null)
         {

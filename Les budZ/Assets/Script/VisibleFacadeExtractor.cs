@@ -4,13 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-/// <summary>
-/// Construit un mesh "façade" : conserve uniquement les triangles visibles depuis une direction.
-/// Deux modes:
-///  - Perspective Rays : rayons partent de la position caméra.
-///  - Directional Sweep (par défaut): la caméra ne donne QUE la direction; balayage parallèle sur tout le mesh.
-/// Sortie en enfant ou au niveau du parent; détruit l'objet générateur à la fin (configurable).
-/// </summary>
+
 [ExecuteAlways]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -61,7 +55,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
     [Header("Fin de génération")]
     [Tooltip("Détruire entièrement l'objet générateur à la fin (préservant la façade).")]
-    public bool destroyOriginalGameObject = true; // <- activé par défaut
+    public bool destroyOriginalGameObject = true; 
 
     public void GenerateFacade() => GenerateImpl();
 
@@ -100,8 +94,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
             Debug.LogError("[VisibleFacadeExtractor] Aucune caméra disponible.");
             return;
         }
-
-        // MeshCollider temporaire (pour triangleIndex fiable)
+        
         bool addedCollider = false;
         var mc = GetComponent<MeshCollider>();
         if (!mc)
@@ -120,8 +113,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
 #if UNITY_2020_2_OR_NEWER
         mc.cookingOptions = MeshColliderCookingOptions.EnableMeshCleaning | MeshColliderCookingOptions.UseFastMidphase;
 #endif
-
-        // Attributs source
+        
         var verts    = mesh.vertices;
         var normals  = mesh.normals;
         var uvs      = mesh.uv;
@@ -131,14 +123,12 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
         var l2w   = transform.localToWorldMatrix;
         Vector3 camPos = cam.transform.position;
-        Vector3 dir    = cam.transform.forward.normalized; // direction uniquement
+        Vector3 dir    = cam.transform.forward.normalized; 
 
-        // Triangles par sous-mesh
         int subCount = mesh.subMeshCount;
         var submeshTris = new List<int[]>(subCount);
         for (int s = 0; s < subCount; s++) submeshTris.Add(mesh.GetTriangles(s));
-
-        // Offset global par sous-mesh (concaténation)
+        
         var submeshBaseTri = new int[subCount];
         int totalTris = 0;
         for (int s = 0; s < subCount; s++)
@@ -146,8 +136,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
             submeshBaseTri[s] = totalTris;
             totalTris += submeshTris[s].Length / 3;
         }
-
-        // Préparation sortie & remap
+        
         var outIndicesPerSub = new List<List<int>>(subCount);
         for (int s = 0; s < subCount; s++) outIndicesPerSub.Add(new List<int>(1024));
 
@@ -161,8 +150,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
         var barySamples = BuildBarySamples(samplesPerTriangle);
         int usedMask    = selfOcclusionOnly ? (1 << gameObject.layer) : occlusionMask.value;
-
-        // Directional Sweep : longueur de balayage
+        
         float sweepLength = 0f;
         if (useDirectionalSweep)
         {
@@ -177,8 +165,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
             }
             sweepLength = Mathf.Max(0.0001f, (maxDot - minDot) + Mathf.Max(sweepPadding, rayBias * 4f));
         }
-
-        // Boucle triangles
+        
         for (int s = 0; s < subCount; s++)
         {
             var tris = submeshTris[s];
@@ -198,7 +185,6 @@ public class VisibleFacadeExtractor : MonoBehaviour
                     if (d > maxViewDistance) continue;
                 }
 
-                // Backface culling par rapport à la DIRECTION
                 if (removeBackFaces)
                 {
                     Vector3 faceN = Vector3.Normalize(Vector3.Cross(w1 - w0, w2 - w0));
@@ -265,8 +251,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
                 outIndicesPerSub[s].Add(ni2);
             }
         }
-
-        // Nettoyage MeshCollider temporaire
+        
         if (mc)
         {
             mc.sharedMesh = prevSharedMesh;
@@ -284,8 +269,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
 #endif
             }
         }
-
-        // Bilan
+        
         int keptTris = 0;
         for (int s = 0; s < outIndicesPerSub.Count; s++) keptTris += outIndicesPerSub[s].Count;
         if (keptTris == 0)
@@ -294,7 +278,6 @@ public class VisibleFacadeExtractor : MonoBehaviour
             return;
         }
 
-        // Construction mesh sortie
         var outGO = PrepareOutput(facadeName, mr, outputAsSibling, this);
         var outMF = outGO.GetComponent<MeshFilter>();
         var outMR = outGO.GetComponent<MeshRenderer>();
@@ -305,7 +288,6 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
         outMesh.SetVertices(newVerts);
 
-        // Compactage sous-meshes et matériaux
         var finalSubIndices = new List<int[]>(outIndicesPerSub.Count);
         var finalMaterials  = new List<Material>(outIndicesPerSub.Count);
         var srcMats = mr.sharedMaterials;
@@ -356,10 +338,10 @@ public class VisibleFacadeExtractor : MonoBehaviour
         EditorUtility.SetDirty(gameObject);
 #endif
 
-        // --- Préserver la façade si elle est encore enfant, avant destruction du générateur ---
+       
         if (destroyOriginalGameObject)
         {
-            // Si la façade a été créée en "child" par erreur, on la remonte au parent pour la préserver
+          
             if (outGO.transform.parent == transform)
             {
                 var parent = transform.parent;
@@ -367,13 +349,13 @@ public class VisibleFacadeExtractor : MonoBehaviour
                 var wrot = outGO.transform.rotation;
                 var wsca = outGO.transform.lossyScale;
 
-                outGO.transform.SetParent(parent, true); // conserve le monde
+                outGO.transform.SetParent(parent, true); 
                 outGO.transform.position = wpos;
                 outGO.transform.rotation = wrot;
-                // Pour la scale, SetParent(true) garde déjà la worldScale; pas besoin de recalc.
+                
             }
 
-            // Et on détruit le générateur (après avoir tout assigné).
+
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
@@ -381,7 +363,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
                 return;
             }
 #endif
-            // En Play, on détruit en fin de frame (sûr)
+         
             Destroy(gameObject);
             return;
         }
@@ -390,7 +372,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
                   $"Mode={(useDirectionalSweep ? "Directional Sweep" : "Perspective Rays")} | Sortie={(outputAsSibling ? "Sibling" : "Child")}.");
     }
 
-    // === Utils ===
+
 
     static int CountAllTris(List<int[]> subIdx)
     {
@@ -465,11 +447,6 @@ public class VisibleFacadeExtractor : MonoBehaviour
         return x;
     }
 
-    /// <summary>
-    /// Crée/retourne l'objet de sortie.
-    /// - Si outputAsSibling = true : parent = transform.parent (même niveau que le générateur), même pose monde.
-    /// - Sinon : parent = transform (enfant).
-    /// </summary>
     GameObject PrepareOutput(string name, MeshRenderer srcRenderer, bool asSibling, VisibleFacadeExtractor src)
     {
         Transform desiredParent = asSibling ? transform.parent : transform;
@@ -492,7 +469,6 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
         if (asSibling)
         {
-            // Conserver la même pose monde que le générateur
             go.transform.position = transform.position;
             go.transform.rotation = transform.rotation;
             go.transform.localScale = transform.lossyScale;
@@ -506,8 +482,7 @@ public class VisibleFacadeExtractor : MonoBehaviour
 
         var mf = go.GetComponent<MeshFilter>(); if (!mf) mf = go.AddComponent<MeshFilter>();
         var mr = go.GetComponent<MeshRenderer>(); if (!mr) mr = go.AddComponent<MeshRenderer>();
-
-        // Copie paramètres de rendu utiles
+        
         mr.shadowCastingMode = srcRenderer.shadowCastingMode;
         mr.receiveShadows    = srcRenderer.receiveShadows;
 #if UNITY_2021_1_OR_NEWER

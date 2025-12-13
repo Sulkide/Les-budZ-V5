@@ -24,10 +24,7 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
 
     private Rigidbody rb;
     private Collider col;
-
-    /// <summary>
-    /// Appelé depuis PlayerMovement3D.LoseSuperCollectibleAndSpawnTimer (côté serveur).
-    /// </summary>
+    
     public void Initialize(
         PlayerMovement3D previousOwner,
         int scorePerTick,
@@ -61,22 +58,17 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
         rb  = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
 
-        // Sécurité : si jamais Initialize n'a pas été appelé (cas rare)
         if (IsServer && !initialized)
         {
             spawnTime = Time.time;
             StartCoroutine(LifeRoutine());
         }
     }
-
-    /// <summary>
-    /// Donne un mouvement initial chaotique.
-    /// </summary>
+    
     private void SetupPhysics()
     {
         if (rb == null) return;
-
-        // Direction aléatoire (toujours vers le haut un peu)
+        
         Vector3 dir = new Vector3(
             Random.Range(-1f, 1f),
             1f,
@@ -84,8 +76,7 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
         ).normalized;
 
         Vector3 impulse = dir * initialImpulse;
-
-        // On ajoute un peu d'aléatoire horizontal
+        
         impulse.x += Random.Range(-randomHorizontalImpulse, randomHorizontalImpulse);
         impulse.z += Random.Range(-randomHorizontalImpulse, randomHorizontalImpulse);
 
@@ -93,9 +84,6 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
         rb.AddTorque(Random.insideUnitSphere * randomTorque, ForceMode.Impulse);
     }
 
-    /// <summary>
-    /// Timer de vie : si personne ne le ramasse, il respawn en version statique.
-    /// </summary>
     private IEnumerator LifeRoutine()
     {
         float endTime = spawnTime + lifetime;
@@ -116,8 +104,7 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
 
         PlayerMovement3D player = other.GetComponentInParent<PlayerMovement3D>();
         if (player == null) return;
-
-        // 🔒 Empêche l'ancien propriétaire de le récupérer pendant 2 sec
+        
         if (player.playerID == previousOwnerId &&
             Time.time < spawnTime + pickupLockDuration)
         {
@@ -126,17 +113,12 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
         }
 
         Debug.Log($"[SuperBonusTimer] Player {player.playerID} récupère le Timer, scorePerTick={scorePerTick}, interval={intervalSeconds}");
-
-        // Donne à ce joueur le super bonus permanent
+        
         player.GainSuperCollectible(scorePerTick, intervalSeconds);
-
-        // On despawn le Timer
+        
         DespawnSelf();
     }
 
-    /// <summary>
-    /// Respawn en version SuperCollectibleVersus de base sur un des respawnPoint.
-    /// </summary>
     private void ReturnToStaticCollectible()
     {
         if (superCollectiblePrefab == null)
@@ -147,8 +129,7 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
         }
 
         Vector3 spawnPos = transform.position;
-
-        // On cherche l'objet Level et son RespawnPointList
+        
         GameObject levelObj = GameObject.FindGameObjectWithTag("Level");
         if (levelObj != null)
         {
@@ -162,8 +143,7 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
                 }
             }
         }
-
-        // On respawn le collectible de base
+        
         GameObject newObj = Instantiate(superCollectiblePrefab, new Vector3(spawnPos.x, spawnPos.y+4, spawnPos.z), Quaternion.identity);
         NetworkObject newNetObj = newObj.GetComponent<NetworkObject>();
         if (newNetObj != null && !newNetObj.IsSpawned)
@@ -171,7 +151,6 @@ public class SuperCollectibleVersusTimer : NetworkBehaviour
             newNetObj.Spawn(true);
         }
 
-        // Puis on détruit / despawn le Timer
         DespawnSelf();
     }
 

@@ -26,20 +26,18 @@ public class TimeWindowActivator : MonoBehaviour
 
     [Header("Cibles à toggler")]
     public GameObject[] gameObjectsToToggle;
-    public Behaviour[] behavioursToToggle; // ex: scripts, components
+    public Behaviour[] behavioursToToggle; 
 
     [Header("Événements optionnels")]
     public UnityEvent onActivate;
     public UnityEvent onDeactivate;
-
-    // État interne pour éviter de ré-appeler plusieurs fois inutilement
+    
     private bool lastActiveState;
 
     void Start()
     {
-        // Initialisation de l'état pour forcer un premier update effectif
         lastActiveState = !GetComputedActiveState();
-        ApplyState(lastActiveState); // forcé pour que Update() voit un changement
+        ApplyState(lastActiveState); 
     }
 
     void Update()
@@ -57,7 +55,7 @@ public class TimeWindowActivator : MonoBehaviour
 
     private bool GetComputedActiveState()
     {
-        // Récupérer l'heure courante
+  
         string currentTimeStr = useRealTime ? GameManager.instance.realTime : fixedTime;
 
         if (!TimeSpan.TryParse(currentTimeStr, out TimeSpan currentTime))
@@ -68,7 +66,7 @@ public class TimeWindowActivator : MonoBehaviour
 
         double currentSec = currentTime.TotalSeconds;
 
-        // On parcourt les fenêtres, la première correspondante détermine l'état
+
         foreach (var window in windows)
         {
             if (!TimeSpan.TryParse(window.startTime, out TimeSpan start)) continue;
@@ -81,12 +79,10 @@ public class TimeWindowActivator : MonoBehaviour
 
             if (startSec <= endSec)
             {
-                // fenêtre normale (ex : 08:00 -> 12:00)
                 inWindow = currentSec >= startSec && currentSec < endSec;
             }
             else
             {
-                // fenêtre qui traverse minuit (ex : 22:00 -> 03:00)
                 inWindow = currentSec >= startSec || currentSec < endSec;
             }
 
@@ -96,7 +92,7 @@ public class TimeWindowActivator : MonoBehaviour
             }
         }
 
-        // Si aucune fenêtre ne matche, par défaut : inverse de enableDuringWindow de la première fenêtre si elle existe, sinon false
+      
         if (windows != null && windows.Length > 0)
         {
             return !windows[0].enableDuringWindow;
@@ -107,13 +103,11 @@ public class TimeWindowActivator : MonoBehaviour
 
     private void ApplyState(bool active)
     {
-        // Toggle GameObjects
         foreach (var go in gameObjectsToToggle)
         {
             if (go != null) go.SetActive(active);
         }
-
-        // Toggle Behaviours (scripts/components)
+        
         foreach (var beh in behavioursToToggle)
         {
             if (beh != null) beh.enabled = active;

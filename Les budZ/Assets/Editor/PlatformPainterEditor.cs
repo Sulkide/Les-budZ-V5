@@ -4,13 +4,12 @@ using UnityEditor;
 [CustomEditor(typeof(PlatformPainter))]
 public class PlatformPainterEditor : Editor
 {
-    // Variables de gestion du drag
+  
     private bool isDragging = false;
     private Vector3 dragStartPosition;
     private Vector3 currentDragPosition;
     private double dragStartTime = 0;
-    private const float clickThreshold = 0.2f; // Seuil pour distinguer un clic court d'un drag
-
+    private const float clickThreshold = 0.2f; 
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
@@ -20,22 +19,20 @@ public class PlatformPainterEditor : Editor
     {
         PlatformPainter painter = (PlatformPainter)target;
         Event e = Event.current;
-
-        // Rafraîchir la vue pour les mouvements et le drag
+        
         if(e.type == EventType.MouseMove || e.type == EventType.MouseDrag)
             SceneView.RepaintAll();
 
-        // Conversion de la position de la souris en coordonnées monde (2D : z = 0)
         Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
         Vector3 mousePos = ray.origin;
         mousePos.z = 0;
 
-        // Si l'utilisateur n'est pas en train de drag (ou pour le simple curseur), afficher la forme prévisualisée à la position de la souris
+       
         if(!isDragging)
         {
             DrawPreviewShape(mousePos, painter.brushSize, painter);
         }
-        // En mode non-line et pendant un drag, afficher la prévisualisation étirée
+        
         else if(!painter.lineMode)
         {
             double dragDuration = EditorApplication.timeSinceStartup - dragStartTime;
@@ -45,17 +42,17 @@ public class PlatformPainterEditor : Editor
             }
             else
             {
-                // Pour un clic court, on affiche juste la forme normale au point de la souris
+             
                 DrawPreviewShape(mousePos, painter.brushSize, painter);
             }
         }
-        // En mode line, toujours afficher la prévisualisation du curseur (la forme normale) au point de la souris
+      
         else
         {
             DrawPreviewShape(mousePos, painter.brushSize, painter);
         }
 
-        // Gestion des événements de la souris
+       
         if(e.type == EventType.MouseDown && e.button == 0)
         {
             isDragging = true;
@@ -133,7 +130,7 @@ public class PlatformPainterEditor : Editor
             e.Use();
         }
 
-        // En mode line, afficher la prévisualisation de la ligne pendant le drag (optionnel)
+        
         if(isDragging && painter.lineMode && (EditorApplication.timeSinceStartup - dragStartTime) >= clickThreshold)
         {
             DrawLinePreview(dragStartPosition, currentDragPosition, painter.brushSize, painter);
@@ -142,7 +139,7 @@ public class PlatformPainterEditor : Editor
         HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
     }
 
-    // Fonction utilitaire pour dessiner la prévisualisation de la forme (non étirée) avec rotation
+    
     private void DrawPreviewShape(Vector3 center, float brushSize, PlatformPainter painter)
     {
         Handles.color = Color.green;
@@ -203,10 +200,10 @@ public class PlatformPainterEditor : Editor
         }
     }
 
-    // Fonction pour dessiner la prévisualisation étirée de la forme lorsque l'utilisateur drag (mode non-line)
+   
     private void DrawStretchedPreviewShape(Vector3 start, Vector3 current, PlatformPainter painter)
     {
-        // Calcul du centre et de la taille (basé sur le drag)
+        
         Vector3 center = (start + current) / 2;
         Vector3 size = new Vector3(Mathf.Abs(current.x - start.x), Mathf.Abs(current.y - start.y), 1);
         if(size.x < 0.001f || size.y < 0.001f)
@@ -214,9 +211,9 @@ public class PlatformPainterEditor : Editor
             DrawPreviewShape(current, painter.brushSize, painter);
             return;
         }
-        // On calcule un facteur d'échelle basé sur la taille obtenue et le brushSize de base
+        
         Vector3 scaleFactor = new Vector3(size.x / painter.brushSize, size.y / painter.brushSize, 1);
-        // On définit une matrice de transformation qui applique la rotation shapeRotation et le facteur d'échelle
+        
         Matrix4x4 m = Matrix4x4.TRS(center, Quaternion.Euler(0, 0, painter.shapeRotation), scaleFactor);
         
         switch(painter.shapeType)
@@ -283,8 +280,7 @@ public class PlatformPainterEditor : Editor
                 break;
         }
     }
-
-    // Retourne le sprite correspondant à l'option choisie (pour la création définitive)
+    
     private Sprite GetCircleSprite(PlatformPainter painter)
     {
         string spriteName = "";
@@ -312,7 +308,7 @@ public class PlatformPainterEditor : Editor
         return Resources.Load<Sprite>(spriteName);
     }
 
-    // Création d'un objet de forme (similaire à CreateCircle) avec la rotation shapeRotation appliquée
+ 
     private void CreateCircle(Vector3 position, float brushSize, PlatformPainter painter)
     {
         GameObject circleObj = new GameObject("Circle");
@@ -322,7 +318,7 @@ public class PlatformPainterEditor : Editor
         }
         circleObj.transform.position = position;
         circleObj.transform.localScale = new Vector3(brushSize, brushSize, 1);
-        // Calcul de la rotation effective
+      
         float effectiveRotation = painter.useFixedAngle ? 90f - painter.fixedAngle : painter.shapeRotation;
         circleObj.transform.rotation = Quaternion.Euler(0, 0, effectiveRotation);
 
@@ -339,7 +335,7 @@ public class PlatformPainterEditor : Editor
     }
 
 
-    // Création d'une ligne (rectangle) dont les extrémités correspondent aux centres des formes (en mode line)
+   
     private void CreateLine(Vector3 start, float projectedDistance, Vector3 direction, float brushSize, PlatformPainter painter)
     {
         float rectLength = projectedDistance;
@@ -422,7 +418,7 @@ public class PlatformPainterEditor : Editor
         Handles.DrawLine(wpBottomLeft, wpTopLeft);
     }
 
-    // Méthodes pour le mode plateforme classique (non-line)
+
     private void CreatePlatformClick(Vector3 position, float brushSize, PlatformPainter painter)
     {
         GameObject platform = new GameObject("Platform");
