@@ -15,7 +15,6 @@ public class PlayerMovement3D : NetworkBehaviour
 {
     [Header("Options General")] 
     public int playerID = 0;
-
     public int currentMaxLife = 15;
     public float recoveryTime = 2f;
     public float currentForce = 10f;
@@ -23,6 +22,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public float gravityScale;
     public float damageCooldown = 2.5f;
     public float FlipDimensionCoolDown = 1f;
+    public float maxAngleWithFriction = 30f;
  
     public RigidbodyConstraints defaultConstraints;
     public Vector2 moveInput;
@@ -39,16 +39,19 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool use3DMovement = true;
     public bool rotateChildOnDash = true;
     
-    public float maxAngleWithFriction = 30f;
+
     public bool canWallJump = true;
     public bool canDash = true;
     public bool canAttack = true;
     public bool canGlide = true;
-    
-    [Header("FX")]
+
+    [Header("FX")] 
+    [SerializeField] private GameObject runFXPrefabs;
+    [SerializeField] private float runParticuleTimer = 0.5f;
+    private float currentParticuleTimer;
     [SerializeField] private GameObject landFXPrefab;
     [SerializeField] private GameObject dashFXPrefab;
-    [SerializeField] private Transform fxRoot; 
+    [SerializeField] private Transform fxFeetRoot; 
 
 
     [Header("UI")]
@@ -585,9 +588,6 @@ public class PlayerMovement3D : NetworkBehaviour
         UpdateDynamicColliders();
         
         if (moveAction == null) return;
-        if (GameManager.instance.isPaused) return;
-
-        
         
         moveInput = moveAction.ReadValue<Vector2>();
         aimInput = aimAction.ReadValue<Vector2>();
@@ -619,98 +619,6 @@ public class PlayerMovement3D : NetworkBehaviour
         UpdatePlayerNameUI();
     }
     
-    private void UpdateVersusUI()
-    {
-        var gm = GameManager.instance;
-        if (gm == null || !gm.useVersusTimer)
-            return;
-        
-        if (gm.versusMatchStarted && !gm.versusMatchFinished)
-        {
-            if (versusResultShown)
-            {
-                versusResultShown = false;
-                if (versusResultPanel != null)
-                    versusResultPanel.SetActive(false);
-            }
-
-            hasVotedRestart = false;
-
-            if (respawnTextTMP != null)
-                respawnTextTMP.gameObject.SetActive(false);
-            if (respawnTextUI != null)
-                respawnTextUI.gameObject.SetActive(false);
-        }
-
-        if (versusTimerTMP != null)
-        {
-            if (!gm.versusMatchStarted && !gm.versusMatchFinished)
-            {
-                versusTimerTMP.text = "En attente d'un autre joueur...";
-            }
-            else
-            {
-                versusTimerTMP.text = gm.GetFormattedVersusTimer();
-            }
-        }
-
-        if (gm.versusMatchFinished && !versusResultShown)
-        {
-            versusResultShown = true;
-            ShowVersusResults();
-        }
-    }
-
-
-
-
-    private void ShowVersusResults()
-    {
-        if (versusResultPanel == null || versusResultLines == null || versusResultLines.Length == 0)
-            return;
-
-        PlayerMovement3D[] allPlayers = FindObjectsOfType<PlayerMovement3D>(true);
-
-        List<PlayerMovement3D> list = new List<PlayerMovement3D>();
-        foreach (var p in allPlayers)
-        {
-            if (p == null) continue;
-        
-            if (!p.IsSpawned) continue;
-
-            list.Add(p);
-        }
-
-        if (list.Count == 0)
-            return;
-
-        list.Sort((a, b) => b.scoreVersus.Value.CompareTo(a.scoreVersus.Value));
-        for (int i = 0; i < versusResultLines.Length; i++)
-        {
-            var line = versusResultLines[i];
-            if (line == null) 
-                continue;
-
-            if (i < list.Count)
-            {
-                var p = list[i];
-                string playerName = p.name; 
-                int score = p.scoreVersus.Value;
-
-                line.gameObject.SetActive(true);
-                line.text = $"{i + 1}. {playerName} - {score} pts";
-            }
-            else
-            {
-                line.gameObject.SetActive(false);
-            }
-        }
-
-        versusResultPanel.SetActive(true);
-    }
-
-
-
     void FixedUpdate()
     {
         if (!IsOwner)
@@ -722,13 +630,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isDead.Value || IsRagdoll)
             return;
 
-        if (GameManager.instance != null && GameManager.instance.isPaused) return;
 
-        if (GameManager.instance != null)
-        {
-            GameManager.instance.FindPlayer(name, transform, this);
-            GameManager.instance.CharacterCheck(name, data.playerName);
-        }
 
 
         if (isDashing || isDashAttacking)
@@ -2138,6 +2040,7 @@ public class PlayerMovement3D : NetworkBehaviour
         else if (Mathf.Abs(moveInput.x) >= 0.5f)
         {
             SwitchAnimation("isRunning");
+            RunParticuleInstance();
         }
         else
         {
@@ -2193,11 +2096,13 @@ public class PlayerMovement3D : NetworkBehaviour
         else if (Mathf.Abs(moveInput.x) >= 0.5f || Mathf.Abs(moveInput.y) >= 0.5f)
         {
             SwitchAnimation("isRunning");
+            RunParticuleInstance();
         }
         else
         {
             SwitchAnimation("isWalking");
         }
+        
     }
 
     public void Jump()
@@ -2320,6 +2225,7 @@ public class PlayerMovement3D : NetworkBehaviour
             CancelGlide();
 
         SwitchAnimation("isDashing");
+        PlayFX(dashFXPrefab, Quaternion.identity, fxFeetRoot.position);
 
         float dashCompressFactor = 0.6f;
         float dashStretchFactor = 1.9f;
@@ -2786,15 +2692,6 @@ public class PlayerMovement3D : NetworkBehaviour
         rb.linearVelocity = Vector3.zero;
         rb.AddForce(dir * force, ForceMode.Impulse);
     }
-
-
-
-
-
-    
- 
-
-
 
     #endregion
 
@@ -3587,13 +3484,101 @@ public class PlayerMovement3D : NetworkBehaviour
         SetIconState(targetState);
     }
 
+        private void UpdateVersusUI()
+    {
+        var gm = GameManager.instance;
+        if (gm == null || !gm.useVersusTimer)
+            return;
+        
+        if (gm.versusMatchStarted && !gm.versusMatchFinished)
+        {
+            if (versusResultShown)
+            {
+                versusResultShown = false;
+                if (versusResultPanel != null)
+                    versusResultPanel.SetActive(false);
+            }
 
+            hasVotedRestart = false;
+
+            if (respawnTextTMP != null)
+                respawnTextTMP.gameObject.SetActive(false);
+            if (respawnTextUI != null)
+                respawnTextUI.gameObject.SetActive(false);
+        }
+
+        if (versusTimerTMP != null)
+        {
+            if (!gm.versusMatchStarted && !gm.versusMatchFinished)
+            {
+                versusTimerTMP.text = "En attente d'un autre joueur...";
+            }
+            else
+            {
+                versusTimerTMP.text = gm.GetFormattedVersusTimer();
+            }
+        }
+
+        if (gm.versusMatchFinished && !versusResultShown)
+        {
+            versusResultShown = true;
+            ShowVersusResults();
+        }
+    }
+
+
+
+
+    private void ShowVersusResults()
+    {
+        if (versusResultPanel == null || versusResultLines == null || versusResultLines.Length == 0)
+            return;
+
+        PlayerMovement3D[] allPlayers = FindObjectsOfType<PlayerMovement3D>(true);
+
+        List<PlayerMovement3D> list = new List<PlayerMovement3D>();
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+        
+            if (!p.IsSpawned) continue;
+
+            list.Add(p);
+        }
+
+        if (list.Count == 0)
+            return;
+
+        list.Sort((a, b) => b.scoreVersus.Value.CompareTo(a.scoreVersus.Value));
+        for (int i = 0; i < versusResultLines.Length; i++)
+        {
+            var line = versusResultLines[i];
+            if (line == null) 
+                continue;
+
+            if (i < list.Count)
+            {
+                var p = list[i];
+                string playerName = p.name; 
+                int score = p.scoreVersus.Value;
+
+                line.gameObject.SetActive(true);
+                line.text = $"{i + 1}. {playerName} - {score} pts";
+            }
+            else
+            {
+                line.gameObject.SetActive(false);
+            }
+        }
+
+        versusResultPanel.SetActive(true);
+    }
 
     #endregion
 
     #region FX
 
-    public void PlayFX(GameObject fxPrefab, Vector3 position, Quaternion rotation)
+    public void PlayFX(GameObject fxPrefab, Quaternion rotation , Vector3 position)
     {
         if (fxPrefab == null) return;
 
@@ -3641,13 +3626,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (dashFXPrefab != null && dashFXPrefab.name == name)
             return dashFXPrefab;
+        
+        if (runFXPrefabs != null && runFXPrefabs.name == name)
+            return runFXPrefabs;
 
         return null;
     }
-
-
-
-
+    
     #endregion
     
     #region MISC
@@ -3832,9 +3817,22 @@ public class PlayerMovement3D : NetworkBehaviour
         UpdateIconFromAnimation(animationName);
     }
 
-    
 
-
+    void RunParticuleInstance()
+    {
+        Debug.Log("RunParticuleInstance 1");
+        if (currentParticuleTimer >= 0)
+        {
+            currentParticuleTimer -= Time.deltaTime;
+            Debug.Log("RunParticuleInstance 2");
+        }
+        else
+        {
+            PlayFX(runFXPrefabs, Quaternion.identity, fxFeetRoot.position);
+            currentParticuleTimer = runParticuleTimer;
+            Debug.Log("RunParticuleInstance 3");
+        }
+    }
 
     #endregion
     
@@ -3850,11 +3848,7 @@ public class PlayerMovement3D : NetworkBehaviour
         
         Vector3 fxPos = groundCheckPoint != null ? groundCheckPoint.position : transform.position;
         
-        PlayFX(
-            landFXPrefab,
-            fxPos,
-            Quaternion.identity
-        );
+        PlayFX(landFXPrefab, Quaternion.identity, fxPos);
         
         if (isStayAirAttacking && data != null)
         {

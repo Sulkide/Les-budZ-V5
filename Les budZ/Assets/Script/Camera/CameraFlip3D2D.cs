@@ -45,7 +45,7 @@ public class CameraFlip3D2D : MonoBehaviour
     private float baseSize;
 
     private bool mappingInitialized = false;
-    private Camera cam;
+    public Camera cam;
     private bool isFlipping = false;
 
     // ================== INIT ==================
@@ -62,6 +62,8 @@ public class CameraFlip3D2D : MonoBehaviour
 
         is3D = !cam.orthographic;
         InitMapping();
+        
+        GameManager.instance.RegisterCameraOption(cam, this);
     }
 
     private void InitMapping()
