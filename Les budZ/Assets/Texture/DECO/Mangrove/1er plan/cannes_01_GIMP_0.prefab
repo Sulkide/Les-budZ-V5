@@ -11,9 +11,7 @@ GameObject:
   - component: {fileID: 4207951396765547979}
   - component: {fileID: 3054878367276363689}
   - component: {fileID: 2222124807670520649}
-  - component: {fileID: 4427882428992662203}
   - component: {fileID: 6711504281046849515}
-  - component: {fileID: 1038971274441638234}
   m_Layer: 0
   m_Name: cannes_01_GIMP_0
   m_TagString: Untagged
@@ -112,23 +110,6 @@ MonoBehaviour:
   rangeActual: 0
   rangeMin: 0
   rangeMax: 1
---- !u!114 &4427882428992662203
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5384494671138746218}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  parentSpriteRenderer: {fileID: 0}
-  childName: ChildSprite
-  sortingOrderOffset: -1
-  overrideMaterial: 1
-  childMaterialOverride: {fileID: 2100000, guid: a6659095aeceb9946b344bba20e63cab, type: 2}
 --- !u!114 &6711504281046849515
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -181,24 +162,6 @@ MonoBehaviour:
   cascadeActionTime: 1
   cascadePauseTime: 0.5
   cascadeReappearTime: 0.7
---- !u!114 &1038971274441638234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5384494671138746218}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d25e3f89205fb84f93745008c8a89b4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetCamera: {fileID: 0}
-  targetsToToggle: []
-  checkInterval: 0.1
-  boundsPadding: 0.15
-  prewarmDistance: 5
-  forceActiveOnStart: 1
 --- !u!1 &8145665025503472614
 GameObject:
   m_ObjectHideFlags: 0

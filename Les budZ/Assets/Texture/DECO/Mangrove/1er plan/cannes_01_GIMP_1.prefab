@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5669730049518733195}
   - component: {fileID: 7129279054225076615}
   - component: {fileID: 4776989810914939249}
-  - component: {fileID: 532014548507294411}
   - component: {fileID: 6627531061102206773}
   m_Layer: 0
   m_Name: cannes_01_GIMP_1
@@ -111,23 +110,6 @@ MonoBehaviour:
   rangeActual: 0
   rangeMin: 0
   rangeMax: 1
---- !u!114 &532014548507294411
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3427526692284908085}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aa8ef92dd55888d4da72144ba1eaa1f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  parentSpriteRenderer: {fileID: 0}
-  childName: ChildSprite
-  sortingOrderOffset: -1
-  overrideMaterial: 1
-  childMaterialOverride: {fileID: 2100000, guid: a6659095aeceb9946b344bba20e63cab, type: 2}
 --- !u!114 &6627531061102206773
 MonoBehaviour:
   m_ObjectHideFlags: 0

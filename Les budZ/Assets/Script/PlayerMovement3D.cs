@@ -13,6 +13,123 @@ using Random = UnityEngine.Random;
 
 public class PlayerMovement3D : NetworkBehaviour
 {
+
+    private bool Online => GameManager.instance != null && GameManager.instance.isGameOnline;
+    private bool HasLocalAuthority => !Online || IsOwner;
+    
+    private int  offlineCurrentLife;
+    private bool offlineIsDead;
+    private int  offlineScoreVersus;
+    private bool offlineHasSuperCollectible;
+    private bool offlineRestartVote;
+    private bool offlineIs3DNow = true;
+    private bool offlineIsCrushedNetwork;
+    private FixedString64Bytes offlineNetAnimationState = new FixedString64Bytes("");
+
+    private int CurrentLifeValue
+    {
+        get => Online ? currentLife.Value : offlineCurrentLife;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) currentLife.Value = value;
+            }
+            else offlineCurrentLife = value;
+        }
+    }
+
+    private bool IsDeadValue
+    {
+        get => Online ? isDead.Value : offlineIsDead;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) isDead.Value = value;
+            }
+            else offlineIsDead = value;
+        }
+    }
+
+    private int ScoreVersusValue
+    {
+        get => Online ? scoreVersus.Value : offlineScoreVersus;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) scoreVersus.Value = value;
+            }
+            else offlineScoreVersus = value;
+        }
+    }
+
+    private bool HasSuperCollectibleValue
+    {
+        get => Online ? hasSuperCollectible.Value : offlineHasSuperCollectible;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) hasSuperCollectible.Value = value;
+            }
+            else offlineHasSuperCollectible = value;
+        }
+    }
+
+    private bool RestartVoteValue
+    {
+        get => Online ? restartVote.Value : offlineRestartVote;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) restartVote.Value = value;
+            }
+            else offlineRestartVote = value;
+        }
+    }
+
+    private bool Is3DNowValue
+    {
+        get => Online ? is3DNow.Value : offlineIs3DNow;
+        set
+        {
+            if (Online)
+            {
+                if (IsOwner) is3DNow.Value = value;
+            }
+            else offlineIs3DNow = value;
+        }
+    }
+
+    private bool IsCrushedNetworkValue
+    {
+        get => Online ? isCrushedNetwork.Value : offlineIsCrushedNetwork;
+        set
+        {
+            if (Online)
+            {
+                if (IsOwner) isCrushedNetwork.Value = value;
+            }
+            else offlineIsCrushedNetwork = value;
+        }
+    }
+
+    private FixedString64Bytes NetAnimationStateValue
+    {
+        get => Online ? netAnimationState.Value : offlineNetAnimationState;
+        set
+        {
+            if (Online)
+            {
+                if (IsServer) netAnimationState.Value = value;
+            }
+            else offlineNetAnimationState = value;
+        }
+    }
+
     [Header("Options General")] 
     public int playerID = 0;
     public int currentMaxLife = 15;
@@ -57,17 +174,14 @@ public class PlayerMovement3D : NetworkBehaviour
     [Header("UI")]
     public GameObject playerCanvas;              
     public TextMeshProUGUI respawnTextTMP;        
-    public Text respawnTextUI;     
     public bool DisplayScore = true;                    
     public TextMeshProUGUI scoreVersusTMP;             
-    public Text scoreVersusUI;
     private Coroutine scoreVersusAnimationCoroutine;
     private Coroutine respawnCoroutine;
     private bool canPressRespawn;    
     public Image lifeFillImage;             
     public TextMeshProUGUI currentLifeTMP;  
     public TextMeshProUGUI maxLifeTMP;    
-    public Text lifeTextUI;                  
     public Image iconImage;                  
     public PlayerIcon playerIconData;       
     private Coroutine iconAnimationCoroutine;
@@ -78,6 +192,10 @@ public class PlayerMovement3D : NetworkBehaviour
     private bool versusResultShown = false;
     public TextMeshProUGUI playerNameTMP;  
     private bool hasVotedRestart = false;
+    [SerializeField] private GameObject pauseMenuRoot;
+    [SerializeField] private bool freezePlayerWhenPauseMenuOpen = true;
+    private bool pauseMenuOpen = false;
+
     
     public enum PlayerIconState
     {
@@ -162,8 +280,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> scoreVersus = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> hasSuperCollectible = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    public NetworkVariable<bool> restartVote =
-        new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> restartVote = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     
     [Space(5)]
     [Header("References")]
@@ -330,24 +447,28 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Awake()
     {
-        playerID = GameManager.instance.AssignePlayerID()-1;
-        gameObject.name = "Player " + playerID;
-        if (gameObject.transform.parent != null)
-        {
-            parent = gameObject.transform.parent.gameObject;
-        }
         
         rb = GetComponent<Rigidbody>();
         colliderBottomBody = GetComponent<CapsuleCollider>();
         playerControls = GetComponent<PlayerInput>();
-        playerControls.actions.Disable();   
-        playerControls.enabled = false;
-        defaultConstraints = rb.constraints;
-
-        currentLife.Value = currentMaxLife;
+        if (Online)
+        {
+            playerControls.actions.Disable();
+            playerControls.enabled = false;
+        }
+        else
+        {
+            playerControls.enabled = true;
+            playerControls.actions.Enable();
+        }
         
+        defaultConstraints = rb.constraints; 
+        
+        if (!Online)
+            offlineCurrentLife = currentMaxLife;
+
         if (currentLifeTMP != null)
-            currentLifeTMP.text = currentLife.Value.ToString();
+            currentLifeTMP.text = CurrentLifeValue.ToString();
 
         if (maxLifeTMP != null)
             maxLifeTMP.text = currentMaxLife.ToString();
@@ -389,6 +510,8 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             dashesLeft = 1;
         }
+        
+        OnSpawnOffline();
     }
 
 
@@ -396,7 +519,8 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         #region ENABLED INPUT ACTIONS
 
-        if (!IsSpawned || !IsOwner) return;
+        if (!HasLocalAuthority) return;
+        if (Online && !IsSpawned) return;
         
         var actions = playerControls.actions;
         if (!string.IsNullOrEmpty(actionMapName))
@@ -450,7 +574,7 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         #region DISABLE INPUT ACTIONS
 
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
         
         if (jumpAction != null)
         {
@@ -515,15 +639,62 @@ public class PlayerMovement3D : NetworkBehaviour
             iconAnimationCoroutine = null;
         }
     }
+
+    public void OnSpawnOffline()
+    {
+        if (GameManager.instance.isGameOnline) return;
+
+        // Offline init
+        offlineIsDead = false;
+        offlineCurrentLife = currentMaxLife;
+        offlineScoreVersus = 0;
+        offlineHasSuperCollectible = false;
+        offlineRestartVote = false;
+        offlineIs3DNow = GameManager.instance.is3d;
+        offlineIsCrushedNetwork = false;
+        offlineNetAnimationState = new FixedString64Bytes("");
+
+        GameManager.instance.RegisterPlayer(this);
+        playerID = GameManager.instance.AssignePlayerID()-1;
+        gameObject.name = "Player " + playerID;
+        hasVotedRestart = false; 
+
+        UpdateScoreVersusUI(ScoreVersusValue);
+
+        if (playerCanvas != null)
+            playerCanvas.SetActive(true);
     
+        if (versusResultPanel != null)
+            versusResultPanel.SetActive(false);
+
+        versusResultShown = false;
+        
+        if (pauseMenuRoot != null)
+            pauseMenuRoot.SetActive(false);
+        
+        GameManager.instance.OnSoloPauseInvalidated += HandleSoloPauseInvalidated;
+
+        playerControls.enabled = true;
+        playerControls.actions.Enable();
+        rb.interpolation = RigidbodyInterpolation.None;
+        
+    }
     public override void OnNetworkSpawn()
     {
+        if (IsServer)
+        {
+            CurrentLifeValue = currentMaxLife;
+            IsDeadValue = false;
+        }
+
         netAnimationState.OnValueChanged += OnAnimationChanged;
         scoreVersus.OnValueChanged += OnScoreVersusChanged;
         GameManager.instance.RegisterPlayer(this);
         hasVotedRestart = false; 
 
-        UpdateScoreVersusUI(scoreVersus.Value);
+        UpdateScoreVersusUI(ScoreVersusValue);
+        playerID = GameManager.instance.AssignePlayerID()-1;
+        gameObject.name = "Player " + playerID;
 
         if (playerCanvas != null)
             playerCanvas.SetActive(IsOwner);
@@ -532,8 +703,16 @@ public class PlayerMovement3D : NetworkBehaviour
             versusResultPanel.SetActive(false);
 
         versusResultShown = false;
+        
+        if (pauseMenuRoot != null)
+            pauseMenuRoot.SetActive(false);
 
-        if (IsOwner)
+        if (IsOwner && GameManager.instance != null)
+        {
+            GameManager.instance.OnSoloPauseInvalidated += HandleSoloPauseInvalidated;
+        }
+
+        if (HasLocalAuthority)
         {
             playerControls.enabled = true;
             playerControls.actions.Enable();
@@ -550,12 +729,38 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     
+    
     public override void OnNetworkDespawn()
     {
         netAnimationState.OnValueChanged -= OnAnimationChanged;
         scoreVersus.OnValueChanged -= OnScoreVersusChanged;
         currentLife.OnValueChanged -= OnLifeChanged;
+
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.OnSoloPauseInvalidated -= HandleSoloPauseInvalidated;
+            GameManager.instance.UnregisterPlayer(this);
+        }
+
+        if (IsOwner && pauseMenuOpen && GameManager.instance != null)
+        {
+            GameManager.instance.NotifyPauseMenuState(this, false);
+        }
     }
+
+    public void OnDespawnOffline()
+    {
+        if (GameManager.instance.isGameOnline) return;
+        
+        currentLife.OnValueChanged -= OnLifeChanged;
+
+        
+        GameManager.instance.OnSoloPauseInvalidated -= HandleSoloPauseInvalidated;
+        GameManager.instance.UnregisterPlayer(this);
+
+        GameManager.instance.NotifyPauseMenuState(this, false);
+    }
+
 
 
 
@@ -563,28 +768,28 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Update()
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
+        
+        // print("update");
 
- 
         UpdateVersusUI();
-
         
         if (GameManager.instance != null && GameManager.instance.versusMatchFinished)
         {
             cannotMove = true;
         }
 
-        if (isDead.Value || IsRagdoll)
+        if (IsDeadValue || IsRagdoll)
             return;
 
         if (currentLifeTMP != null)
-            currentLifeTMP.text = currentLife.Value.ToString();
+            currentLifeTMP.text = CurrentLifeValue.ToString();
 
         if (maxLifeTMP != null)
             maxLifeTMP.text = currentMaxLife.ToString();
         
-        is3DNow.Value = GameManager.instance.is3d;
-        isCrushedNetwork.Value = isCrushed;
+        Is3DNowValue = GameManager.instance.is3d;
+        IsCrushedNetworkValue = isCrushed;
         UpdateDynamicColliders();
         
         if (moveAction == null) return;
@@ -621,17 +826,15 @@ public class PlayerMovement3D : NetworkBehaviour
     
     void FixedUpdate()
     {
-        if (!IsOwner)
+        if (!HasLocalAuthority)
         {
             rb.isKinematic = true;
             return;
         }
+        rb.isKinematic = false;
         
-        if (isDead.Value || IsRagdoll)
+        if (IsDeadValue || IsRagdoll)
             return;
-
-
-
 
         if (isDashing || isDashAttacking)
             return;
@@ -668,7 +871,7 @@ public class PlayerMovement3D : NetworkBehaviour
         
         ApplyCustomGravity();
 
-        if (isDead.Value) return;
+        if (IsDeadValue) return;
 
         if (GameManager.instance.is3d)
             HandleMovement3D();
@@ -680,7 +883,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnFlipPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove || isStunned || isCrushed) return;
+        if (!HasLocalAuthority || cannotMove || isStunned || isCrushed) return;
         SwitchAnimation("isFlip");
         GameManager.instance.ChangeDimension();
         StartCoroutine(FlipDimensionCoolDownCoroutine(FlipDimensionCoolDown));
@@ -689,13 +892,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnSelectRPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!HasLocalAuthority)return;
         Debug.Log("OnSelectRPressed");
     }
 
     private void OnPausePressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
 
         var gm = GameManager.instance;
         
@@ -712,13 +915,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnStartPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
 
         var gm = GameManager.instance;
         
         if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
         {
-            if (!restartVote.Value && !hasVotedRestart)
+            if (!RestartVoteValue && !hasVotedRestart)
             {
                 hasVotedRestart = true;
                 Debug.Log($"[Versus] Player {playerID} pressed Start to vote restart.");
@@ -729,46 +932,47 @@ public class PlayerMovement3D : NetworkBehaviour
                     respawnTextTMP.gameObject.SetActive(true);
                     respawnTextTMP.text = "En attente des autres joueurs...";
                 }
-                if (respawnTextUI != null)
-                {
-                    respawnTextUI.gameObject.SetActive(true);
-                    respawnTextUI.text = "En attente des autres joueurs...";
-                }
+
             }
 
             return;
         }
 
         Debug.Log("OnStartPressed");
-
-
-        if (isDead.Value && canPressRespawn)
+        
+        if (IsDeadValue && canPressRespawn)
         {
-            RequestRespawnServerRpc();
+            if (Online)
+                RequestRespawnServerRpc();
+            else
+                Respawn();
+            return;
+        }
+
+        if (!IsDeadValue)
+        {
+            TogglePauseMenu();
+            return;
         }
     }
-
     
-
-
-
 
 
     private void OnGrapReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!HasLocalAuthority)return;
         Debug.Log("OnGrapReleased");
     }
 
     private void OnGrapPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!HasLocalAuthority)return;
         Debug.Log("OnGrapPressed");
     }
 
     private void OnAttackReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
 
         if (isStayAirAttacking)
         {
@@ -785,7 +989,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnAttackPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
         
         if (!canAttack) return;
         if (isDashing || isDashAttacking) return;
@@ -825,33 +1029,33 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnUseReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!HasLocalAuthority)return;
         Debug.Log("OnUseReleased");
     }
 
     private void OnUsePressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner)return;
+        if (!HasLocalAuthority)return;
         Debug.Log("OnUsePressed");
     }
 
     private void OnDashPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
         if (!canDash) return;
         lastPressedDashTime = data.dashInputBufferTime;
     }
 
     private void OnDashReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
         if (!canDash) return;
         lastPressedDashTime = 0;
     }
 
     private void OnJumpReleased(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
         if (isGliding)
         {
             CancelGlide();
@@ -864,7 +1068,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnJumpPressed(InputAction.CallbackContext obj)
     {
-        if (!IsOwner || cannotMove) return;
+        if (!HasLocalAuthority || cannotMove) return;
         
         if (isCrushed)
         {
@@ -1065,6 +1269,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void CheckDirectionToFace(bool moveRight)
     {
+        if (cannotMove) return;
+        
         if (moveRight != isFacingRight)
         {
             if (!isDashing)
@@ -1080,6 +1286,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleJumpState()
     {
+        
+        if (cannotMove) return;
         if (isStunned) return;
         if (isJumping && rb.linearVelocity.y < 0f)
         {
@@ -1110,6 +1318,8 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleJumpBuffer()
     {
+        
+        if (cannotMove) return;
         if (data == null) return;
 
         if (CanJump() && lastPressedJumpTime > 0f)
@@ -1142,6 +1352,7 @@ public class PlayerMovement3D : NetworkBehaviour
     
     private void HandleGlideState()
     {
+        if (cannotMove) return;
         if (!canGlide || data == null || rb == null) return;
 
         bool grounded = lastOnGroundTime > 0f;
@@ -1227,6 +1438,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     void HandleDashState()
     {
+        if (cannotMove) return;
         if (isGroundPounding) 
             return;
 
@@ -1310,6 +1522,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleAttackState()
     {
+        if (cannotMove) return;
         if (isStunned) return;
         
         HandleIdleAttackHoldState();
@@ -1598,7 +1811,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Damage(amount, facing);
             Recovery(!(amount <=0));
         
-            if (isCrushedNetwork.Value) return;
+            if (IsCrushedNetworkValue) return;
         
             Stunned(duration);
         }
@@ -1623,9 +1836,38 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isRecovery) return;
         if (amount <= 0) return;
         Debug.Log("Player " + playerID + "just receive damage : " + amount);
+
+        if (Online)
+        {
+            ApplyDamageServerRpc(amount, facing);
+        }
+        else
+        {
+            ApplyDamageLocal(amount, facing);
+        }
         
-        ApplyDamageServerRpc(amount, facing);
         UpdateIconFromAnimation("isDamaged");
+
+    }
+
+    private void ApplyDamageLocal(int amount, bool facing)
+    {
+        CancelDash();
+        CancelGlide();
+
+        CurrentLifeValue -= amount;
+
+        if (HasSuperCollectibleValue)
+        {
+            Debug.Log($"[SuperBonus] Player {playerID} perd le super bonus suite à un hit.");
+            LoseSuperCollectibleAndSpawnTimer();
+        }
+        
+        if (CurrentLifeValue <= 0)
+        {
+            Death(facing);
+        }
+
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -1637,20 +1879,20 @@ public class PlayerMovement3D : NetworkBehaviour
         CancelDash();
         CancelGlide();
 
-        currentLife.Value -= amount;
+        CurrentLifeValue -= amount;
 
-        if (hasSuperCollectible.Value)
+        if (HasSuperCollectibleValue)
         {
             Debug.Log($"[SuperBonus] Player {playerID} perd le super bonus suite à un hit.");
             LoseSuperCollectibleAndSpawnTimer();
         }
         
-        if (currentLife.Value <= 0)
+        if (CurrentLifeValue <= 0)
         {
             Death(facing);
         }
 
-        Debug.Log($"Player {playerID} just Apply damage : amount={amount}, life={currentLife.Value}");
+        Debug.Log($"Player {playerID} just Apply damage : amount={amount}, life={CurrentLifeValue}");
     }
 
 
@@ -1687,7 +1929,24 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (duration <= 0) return;
         Debug.Log("Player " + playerID + "just been crushed with duration : " + duration + " ; tapActionMin : " + tapActionMin + " ; tapActionMax : " + tapActionMax + " ; AnimationName :" + animationName );
-        RequestCrushedServerRpc(duration, tapActionMin, tapActionMax, animationName);
+
+        if (Online)
+        {
+            RequestCrushedServerRpc(duration, tapActionMin, tapActionMax, animationName);
+        }
+        else
+        {
+            ApplyCrushedLocal(duration, tapActionMin, tapActionMax, animationName);
+        }
+
+    }
+
+    private void ApplyCrushedLocal(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
+    {
+                
+        if (IsCrushedNetworkValue) return;
+        
+        StartCoroutine(CrushRoutine(duration, tapActionMin, tapActionMax, animationName));
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -1699,9 +1958,9 @@ public class PlayerMovement3D : NetworkBehaviour
     [ClientRpc]
     private void CrushedOwnerClientRpc(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
         
-        if (isCrushedNetwork.Value) return;
+        if (IsCrushedNetworkValue) return;
         
         StartCoroutine(CrushRoutine(duration, tapActionMin, tapActionMax, animationName));
     }
@@ -1776,9 +2035,17 @@ public class PlayerMovement3D : NetworkBehaviour
     {
 
         if (!isHurt) return;
-        if (isRecovery) return; 
+        if (isRecovery) return;
 
-        RequestRecoveryServerRpc();
+        if (Online)
+        {
+            RequestRecoveryServerRpc();
+        }
+        else
+        {
+            StartCoroutine(RecoveryRoutine());
+        }
+
     }
 
     private IEnumerator RecoveryRoutine()
@@ -1830,14 +2097,14 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!IsServer)
             return;
 
-        if (isDead.Value) return;
+        if (IsDeadValue) return;
 
-        if (hasSuperCollectible.Value)
+        if (HasSuperCollectibleValue)
         {
             LoseSuperCollectibleAndSpawnTimer();
         }
         
-        isDead.Value = true;
+        IsDeadValue = true;
         cannotMove   = true;
 
         Debug.Log("Death");
@@ -1862,9 +2129,9 @@ public class PlayerMovement3D : NetworkBehaviour
         }
         
         SetIconState(PlayerIconState.Dead, true);
-        UpdateLifeUI(currentLife.Value, currentMaxLife);
+        UpdateLifeUI(CurrentLifeValue, currentMaxLife);
         
-        if (IsOwner)
+        if (HasLocalAuthority)
         {
             if (respawnCoroutine != null)
                 StopCoroutine(respawnCoroutine);
@@ -1897,18 +2164,15 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void SetRespawnMessage(string message)
     {
-        if (!IsOwner) return; 
+        if (!HasLocalAuthority) return; 
 
         if (respawnTextTMP != null)
             respawnTextTMP.text = message;
-
-        if (respawnTextUI != null)
-            respawnTextUI.text = message;
     }
     
     public void Respawn()
     {
-        if (!IsServer)
+        if (Online && !IsServer)
             return;
         
         Vector3 spawnPos = GetRespawnPosition();
@@ -1921,10 +2185,10 @@ public class PlayerMovement3D : NetworkBehaviour
             rb.angularVelocity = Vector3.zero;
         }
 
-        isDead.Value = false;
+        IsDeadValue = false;
         cannotMove   = false;
         
-        currentLife.Value = currentMaxLife;
+        CurrentLifeValue = currentMaxLife;
         
         RespawnClientRpc(spawnPos);
         
@@ -1940,7 +2204,7 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
 
-        if (!isDead.Value) 
+        if (!IsDeadValue) 
             return;
 
         Respawn();
@@ -1963,14 +2227,11 @@ public class PlayerMovement3D : NetworkBehaviour
             ragdollController.EnableRagdoll(false);
     
         SetIconState(PlayerIconState.Idle, true);
-        UpdateLifeUI(currentLife.Value, currentMaxLife);
-    
-        if (IsOwner)
+        UpdateLifeUI(CurrentLifeValue, currentMaxLife);
+        if (HasLocalAuthority)
         {
             if (respawnTextTMP != null)
                 respawnTextTMP.gameObject.SetActive(false);
-            if (respawnTextUI != null)
-                respawnTextUI.gameObject.SetActive(false);
 
             canPressRespawn = false;
 
@@ -1991,11 +2252,12 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleMovement2D()
     {
+        
+        if (cannotMove) return;
         if (isStunned) return;
         if (isCrushed) return;
         if (isIdleAttcking || isIdleAttackStopping) return;
-
-
+        
         float currentVelX = rb.linearVelocity.x;
         float desiredSpeed = targetSpeed;
         float accelRate;
@@ -2051,6 +2313,8 @@ public class PlayerMovement3D : NetworkBehaviour
     private void HandleMovement3D()
     {
 
+        if (cannotMove) return;
+        
         if (isStunned) return;
         if (isCrushed) return;
         if (isIdleAttcking || isIdleAttackStopping) return;
@@ -2142,7 +2406,7 @@ public class PlayerMovement3D : NetworkBehaviour
     [ClientRpc]
     private void BumpOwnerClientRpc(float multiplier)
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
 
         ApplyBump(multiplier);
     }
@@ -2656,7 +2920,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Knockback(Vector3 dir, float force)
     {
-        if (isCrushedNetwork.Value) return;
+        if (IsCrushedNetworkValue) return;
         
         if (dir.sqrMagnitude < 0.0001f)
             dir = transform.forward;
@@ -2668,8 +2932,18 @@ public class PlayerMovement3D : NetworkBehaviour
         
         dir = dir.normalized;
 
-        RequestKnockbackServerRpc(dir, force);
+        if (Online)
+        {
+            RequestKnockbackServerRpc(dir, force);
+        }
+        else
+        {
+            ApplyKnockback(dir, force);
+        }
+        
     }
+
+
 
     [ServerRpc(RequireOwnership = false)]
     private void RequestKnockbackServerRpc(Vector3 dir, float force)
@@ -2680,7 +2954,7 @@ public class PlayerMovement3D : NetworkBehaviour
     [ClientRpc]
     private void KnockbackOwnerClientRpc(Vector3 dir, float force)
     {
-        if (!IsOwner) return;
+        if (!HasLocalAuthority) return;
 
         ApplyKnockback(dir, force);
     }
@@ -2688,7 +2962,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void ApplyKnockback(Vector3 dir, float force)
     {
         if (rb == null) return;
-        if (isDead.Value || IsRagdoll) return;
+        if (IsDeadValue || IsRagdoll) return;
         rb.linearVelocity = Vector3.zero;
         rb.AddForce(dir * force, ForceMode.Impulse);
     }
@@ -2700,7 +2974,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (isDead.Value || IsRagdoll) return;  
+        if (IsDeadValue || IsRagdoll) return;  
         
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
@@ -2709,7 +2983,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionStay(Collision collision)
     {
-        if (isDead.Value || IsRagdoll) return;  
+        if (IsDeadValue || IsRagdoll) return;  
         
         if (isStunned) return;
         
@@ -2724,7 +2998,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionExit(Collision collision)
     {
-        if (isDead.Value || IsRagdoll) return;  
+        if (IsDeadValue || IsRagdoll) return;  
         
         if (isStunned) return;
         
@@ -2830,9 +3104,9 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
         
-        if (is3DNow.Value != lastIs3DState)
+        if (Is3DNowValue != lastIs3DState)
         {
-            lastIs3DState = is3DNow.Value;
+            lastIs3DState = Is3DNowValue;
 
             lastPosZHit = null;
             lastNegZHit = null;
@@ -2848,7 +3122,7 @@ public class PlayerMovement3D : NetworkBehaviour
             targetNegExtentZ2D       = 0f;
             collider2DResizePending  = false;
 
-            if (is3DNow.Value)
+            if (Is3DNowValue)
             {
                 SwitchToCollider3D();
             }
@@ -2861,7 +3135,7 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
         
-        if (!is3DNow.Value)
+        if (!Is3DNowValue)
         {
             if (collider2DAtMaxExtent)
                 return;
@@ -3162,7 +3436,7 @@ public class PlayerMovement3D : NetworkBehaviour
         superCollectibleScorePerTick = scorePerTick;
         superCollectibleInterval = intervalSeconds;
 
-        hasSuperCollectible.Value = true;
+        HasSuperCollectibleValue = true;
 
         if (superCollectibleCoroutine != null)
             StopCoroutine(superCollectibleCoroutine);
@@ -3172,11 +3446,11 @@ public class PlayerMovement3D : NetworkBehaviour
     
     private IEnumerator SuperCollectibleRoutine()
     {
-        while (hasSuperCollectible.Value && !isDead.Value)
+        while (HasSuperCollectibleValue && !IsDeadValue)
         {
             yield return new WaitForSeconds(superCollectibleInterval);
 
-            if (!hasSuperCollectible.Value || isDead.Value)
+            if (!HasSuperCollectibleValue || IsDeadValue)
                 break;
 
             AddScoreVersus(superCollectibleScorePerTick);
@@ -3188,9 +3462,9 @@ public class PlayerMovement3D : NetworkBehaviour
     private void LoseSuperCollectibleAndSpawnTimer()
     {
         if (!IsServer) return;
-        if (!hasSuperCollectible.Value) return;
+        if (!HasSuperCollectibleValue) return;
 
-        hasSuperCollectible.Value = false;
+        HasSuperCollectibleValue = false;
 
         if (superCollectibleCoroutine != null)
         {
@@ -3233,7 +3507,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void SendRestartVoteServerRpc()
     {
        
-        restartVote.Value = true;
+        RestartVoteValue = true;
         Debug.Log($"[Versus] Player {playerID} voted for restart.");
     }
     
@@ -3250,10 +3524,10 @@ public class PlayerMovement3D : NetworkBehaviour
         
         if (respawnTextTMP != null)
             respawnTextTMP.gameObject.SetActive(false);
-        if (respawnTextUI != null)
-            respawnTextUI.gameObject.SetActive(false);
         
         versusResultShown = false;
+
+
         if (versusResultPanel != null)
             versusResultPanel.SetActive(false);
     }
@@ -3269,8 +3543,8 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
 
-        int newValue = Mathf.Max(0, scoreVersus.Value + amount);
-        scoreVersus.Value = newValue;
+        int newValue = Mathf.Max(0, ScoreVersusValue + amount);
+        ScoreVersusValue = newValue;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -3360,9 +3634,6 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (scoreVersusTMP != null)
             scoreVersusTMP.text = text;
-
-        if (scoreVersusUI != null)
-            scoreVersusUI.text = text;
     }
 
     private void OnLifeChanged(int previousValue, int newValue)
@@ -3449,9 +3720,8 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (playerIconData == null || iconImage == null)
             return;
-
-        // Si le joueur est mort, on force Dead
-        if (isDead.Value)
+        
+        if (IsDeadValue)
         {
             SetIconState(PlayerIconState.Dead);
             return;
@@ -3484,8 +3754,10 @@ public class PlayerMovement3D : NetworkBehaviour
         SetIconState(targetState);
     }
 
-        private void UpdateVersusUI()
+    private void UpdateVersusUI()
     {
+        if (!GameManager.instance.isGameOnline) return;
+        
         var gm = GameManager.instance;
         if (gm == null || !gm.useVersusTimer)
             return;
@@ -3495,6 +3767,8 @@ public class PlayerMovement3D : NetworkBehaviour
             if (versusResultShown)
             {
                 versusResultShown = false;
+
+
                 if (versusResultPanel != null)
                     versusResultPanel.SetActive(false);
             }
@@ -3503,8 +3777,6 @@ public class PlayerMovement3D : NetworkBehaviour
 
             if (respawnTextTMP != null)
                 respawnTextTMP.gameObject.SetActive(false);
-            if (respawnTextUI != null)
-                respawnTextUI.gameObject.SetActive(false);
         }
 
         if (versusTimerTMP != null)
@@ -3549,7 +3821,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (list.Count == 0)
             return;
 
-        list.Sort((a, b) => b.scoreVersus.Value.CompareTo(a.scoreVersus.Value));
+        list.Sort((a, b) => b.ScoreVersusValue.CompareTo(a.ScoreVersusValue));
         for (int i = 0; i < versusResultLines.Length; i++)
         {
             var line = versusResultLines[i];
@@ -3560,7 +3832,7 @@ public class PlayerMovement3D : NetworkBehaviour
             {
                 var p = list[i];
                 string playerName = p.name; 
-                int score = p.scoreVersus.Value;
+                int score = p.ScoreVersusValue;
 
                 line.gameObject.SetActive(true);
                 line.text = $"{i + 1}. {playerName} - {score} pts";
@@ -3573,6 +3845,46 @@ public class PlayerMovement3D : NetworkBehaviour
 
         versusResultPanel.SetActive(true);
     }
+    
+    private void TogglePauseMenu()
+    {
+        if (pauseMenuOpen) ClosePauseMenu();
+        else OpenPauseMenu();
+    }
+
+    private void OpenPauseMenu()
+    {
+        pauseMenuOpen = true;
+
+        if (pauseMenuRoot != null)
+            pauseMenuRoot.SetActive(true);
+
+        if (freezePlayerWhenPauseMenuOpen)
+            cannotMove = true;
+
+        GameManager.instance?.NotifyPauseMenuState(this, true);
+    }
+
+    private void ClosePauseMenu()
+    {
+        pauseMenuOpen = false;
+
+        if (pauseMenuRoot != null)
+            pauseMenuRoot.SetActive(false);
+
+        if (freezePlayerWhenPauseMenuOpen)
+            cannotMove = false;
+
+        GameManager.instance?.NotifyPauseMenuState(this, false);
+    }
+
+    private void HandleSoloPauseInvalidated()
+    {
+        if (!HasLocalAuthority) return;
+        if (!pauseMenuOpen) return;
+
+        ClosePauseMenu();
+    }
 
     #endregion
 
@@ -3582,22 +3894,23 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (fxPrefab == null) return;
 
-        if (IsServer)
+        if (Online)
         {
-            PlayFXClientRpc(
-                fxPrefab.name,
-                position,
-                rotation
-            );
+            if (IsServer)
+            {
+                PlayFXClientRpc(fxPrefab.name, position, rotation);
+            }
+            else
+            {
+                PlayFXServerRpc(fxPrefab.name, position, rotation);
+            }
         }
         else
         {
-            PlayFXServerRpc(
-                fxPrefab.name,
-                position,
-                rotation
-            );
+            PlayFXLocal(fxPrefab.name, position, rotation);
         }
+        
+
     }
     
     [ServerRpc(RequireOwnership = false)]
@@ -3608,6 +3921,18 @@ public class PlayerMovement3D : NetworkBehaviour
 
     [ClientRpc]
     private void PlayFXClientRpc(string fxName, Vector3 position, Quaternion rotation)
+    {
+        GameObject fxPrefab = GetFXByName(fxName);
+        if (fxPrefab == null) return;
+
+        GameObject fx = Instantiate(fxPrefab, position, rotation);
+
+        var ps = fx.GetComponent<ParticleSystem>();
+        if (ps != null)
+            ps.Play();
+    }
+    
+    private void PlayFXLocal(string fxName, Vector3 position, Quaternion rotation)
     {
         GameObject fxPrefab = GetFXByName(fxName);
         if (fxPrefab == null) return;
@@ -3639,7 +3964,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     public void AdaptRotationToTerrain2D(Collision collision)
     {
-        if (isDead.Value || IsRagdoll) return;
+        if (IsDeadValue || IsRagdoll) return;
         
         ContactPoint bestContact = collision.GetContact(0);
         for (int i = 1; i < collision.contactCount; i++)
@@ -3733,23 +4058,26 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
 
-        if (IsServer)
+        if (Online)
         {
-            netAnimationState.Value = animationName;
-        }
-        else
-        {
-            UpdateAnimationServerRpc(animationName);
-        }
+            if (IsServer)
+            {
+                NetAnimationStateValue = animationName;
+            }
+            else
+            {
+                UpdateAnimationServerRpc(animationName);
+            }
         
-        UpdateIconFromAnimation(animationName);
+            UpdateIconFromAnimation(animationName);
+        }
     }
 
     
     [ServerRpc(RequireOwnership = false)]
     private void UpdateAnimationServerRpc(string animationName)
     {
-        netAnimationState.Value = animationName;
+        NetAnimationStateValue = animationName;
     }
 
     private void OnAnimationChanged(FixedString64Bytes oldValue, FixedString64Bytes newValue)
@@ -3820,17 +4148,14 @@ public class PlayerMovement3D : NetworkBehaviour
 
     void RunParticuleInstance()
     {
-        Debug.Log("RunParticuleInstance 1");
         if (currentParticuleTimer >= 0)
         {
             currentParticuleTimer -= Time.deltaTime;
-            Debug.Log("RunParticuleInstance 2");
         }
         else
         {
             PlayFX(runFXPrefabs, Quaternion.identity, fxFeetRoot.position);
             currentParticuleTimer = runParticuleTimer;
-            Debug.Log("RunParticuleInstance 3");
         }
     }
 
@@ -4149,13 +4474,20 @@ public class PlayerMovement3D : NetworkBehaviour
     
     private void TriggerLandBounceFX()
     {
+       
 
-        TweenBounce();
-        
-        if (IsOwner)
+        if (Online)
         {
-            TriggerLandBounceFXServerRpc();
+            if (IsOwner)
+            {
+                TriggerLandBounceFXServerRpc();
+            }
         }
+        else
+        {
+            TweenBounce();
+        }
+
     }
 
     [ServerRpc(RequireOwnership = true)]
@@ -4217,11 +4549,16 @@ public class PlayerMovement3D : NetworkBehaviour
 
     public void TriggerStretchFX(Vector3 stretchFactors, float duration = 0.2f, Ease ease = Ease.Linear)
     {
-        TweenStretch(stretchFactors, duration, ease);
-        
-        if (IsOwner)
+        if (Online)
         {
-            TriggerStretchFXServerRpc(stretchFactors, duration, ease);
+            if (IsOwner)
+            {
+                TriggerStretchFXServerRpc(stretchFactors, duration, ease);
+            }
+        }
+        else
+        {
+            TweenStretch(stretchFactors, duration, ease);
         }
     }
 

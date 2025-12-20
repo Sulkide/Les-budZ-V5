@@ -48,7 +48,7 @@ public class CameraFlip3D2D : MonoBehaviour
     public Camera cam;
     private bool isFlipping = false;
 
-    // ================== INIT ==================
+
 
     void Awake()
     {

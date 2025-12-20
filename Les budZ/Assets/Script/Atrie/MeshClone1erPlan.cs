@@ -84,7 +84,7 @@ public class MeshClone1erPlan : MonoBehaviour
             }
             else
             {
-                Debug.Log("Polygon non trouvé dans le clone.");
+                //Debug.Log("Polygon non trouvé dans le clone.");
             }
         }
 

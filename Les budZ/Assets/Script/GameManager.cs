@@ -13,11 +13,20 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
     
+    [Header("Online Settings")]
+    public bool isGameOnline = false;
     
     [Header("Player information")]
     public List<PlayerMovement3D> allPlayers = new List<PlayerMovement3D>();
     public bool is3d;
     public int nextPlayerID = 1;
+    public event System.Action<bool> OnPauseChanged;
+    public event System.Action OnSoloPauseInvalidated;
+
+    private bool soloPauseTimeScaleActive = false;
+
+    
+
     
     [Header("main camera")]
     public Camera mainCamera;
@@ -59,6 +68,7 @@ public class GameManager : MonoBehaviour
         if (realTimeText == null)
         {
             return;
+        
         }
 
         UpdateDisplay(DateTime.Now);
@@ -133,17 +143,20 @@ public class GameManager : MonoBehaviour
         
         nextPlayerID++;
         int assignedID = nextPlayerID;
-        
-        if (useVersusTimer && !versusMatchStarted)
-        {
-            int playerCount = assignedID; 
 
-            if (playerCount >= 3)
+        if (isGameOnline)
+        {
+            if (useVersusTimer && !versusMatchStarted)
             {
-                StartVersusMatch();
+                int playerCount = assignedID; 
+
+                if (playerCount >= 3)
+                {
+                    StartVersusMatch();
+                }
             }
         }
-
+        
         return assignedID;
     }
     
@@ -167,11 +180,83 @@ public class GameManager : MonoBehaviour
         //realTimeText.text = formatted;
     }
     
+    
     public void RegisterPlayer(PlayerMovement3D p)
     {
+        if (p == null) return;
+
         if (!allPlayers.Contains(p))
             allPlayers.Add(p);
+
+        if (soloPauseTimeScaleActive && GetActivePlayerCount() > 1)
+        {
+            soloPauseTimeScaleActive = false;
+            OnPauseChanged?.Invoke(false);
+            OnSoloPauseInvalidated?.Invoke();
+        }
     }
+
+    public void UnregisterPlayer(PlayerMovement3D p)
+    {
+        if (p != null)
+            allPlayers.Remove(p);
+
+        allPlayers.RemoveAll(x => x == null);
+
+        nextPlayerID = Mathf.Max(0, nextPlayerID - 1);
+
+        if (soloPauseTimeScaleActive && GetActivePlayerCount() > 1)
+        {
+            soloPauseTimeScaleActive = false;
+            OnPauseChanged?.Invoke(false);
+            OnSoloPauseInvalidated?.Invoke();
+        }
+    }
+
+    public void NotifyPauseMenuState(PlayerMovement3D requester, bool pauseMenuOpen)
+    {
+        int activeCount = GetActivePlayerCount();
+
+        if (pauseMenuOpen)
+        {
+            if (activeCount <= 1)
+            {
+                soloPauseTimeScaleActive = true;
+                OnPauseChanged?.Invoke(true);
+            }
+            else
+            {
+                if (soloPauseTimeScaleActive)
+                {
+                    soloPauseTimeScaleActive = false;
+                    OnPauseChanged?.Invoke(false);
+                }
+            }
+        }
+        else
+        {
+            if (soloPauseTimeScaleActive)
+            {
+                soloPauseTimeScaleActive = false;
+                OnPauseChanged?.Invoke(false);
+            }
+        }
+    }
+
+    private int GetActivePlayerCount()
+    {
+        allPlayers.RemoveAll(x => x == null);
+
+        int count = 0;
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+            if (!p.IsSpawned) continue;
+            count++;
+        }
+        return count;
+    }
+
 
     #endregion
 
