@@ -23,6 +23,8 @@ public class LayerCollision : MonoBehaviour
             
             if (AlreadyHitThisAttack(pm)) return;
             
+            int amount = GameManager.instance.maxDamagePlayer;
+            
             if (playerMovement3D.isIdleAttcking)
             {
                 
@@ -39,7 +41,7 @@ public class LayerCollision : MonoBehaviour
                 
                 Vector3 finalDir = (flatDir + Vector3.up * 0.2f).normalized;
 
-                int amount = 3;
+                amount *= 3;
                 
                 float force;
 
@@ -54,7 +56,7 @@ public class LayerCollision : MonoBehaviour
                 
                 pm.GetHit(finalDir, force, amount, 0.5f, playerMovement3D.isFacingRight);
                 
-                playerMovement3D.AddScoreVersus(50);
+                playerMovement3D.AddScore(50);
                 return;
             }
             
@@ -67,7 +69,7 @@ public class LayerCollision : MonoBehaviour
                 flatDir.Normalize();
 
                 Vector3 finalDir = (flatDir + Vector3.up * 0.2f).normalized;
-                int amount = 2;
+                amount *= 2;
                 
                 float force;
 
@@ -81,12 +83,13 @@ public class LayerCollision : MonoBehaviour
                 }
                 
                 pm.GetHit(finalDir, force, amount, 0.5f, playerMovement3D.isFacingRight);
-                playerMovement3D.AddScoreVersus(50);
+                playerMovement3D.AddScore(50);
                 return;
             }
 
             if (playerMovement3D.isDashAttacking)
             {
+                
                 Vector3 flatDir = pm.transform.position - playerMovement3D.transform.position;
                 flatDir.y = 0f;
                 if (flatDir.sqrMagnitude < 0.0001f)
@@ -94,7 +97,6 @@ public class LayerCollision : MonoBehaviour
                 flatDir.Normalize();
 
                 Vector3 finalDir = (flatDir + Vector3.up * 0.2f).normalized;
-                int amount = 1;
                 
                 float force;
 
@@ -111,33 +113,34 @@ public class LayerCollision : MonoBehaviour
 
                 playerMovement3D.CancelDash();
                 playerMovement3D.GetHit(new Vector3(-finalDir.x, finalDir.y, -finalDir.z), playerMovement3D.currentForce/2, 0, 0, playerMovement3D.isFacingRight);
-                playerMovement3D.AddScoreVersus(50);
+                playerMovement3D.AddScore(50);
                 return;
             }
             
                         
             if ((playerMovement3D.isStayAirAttacking || playerMovement3D.isAirAttcking))
             {
-                pm.GetHit(Vector3.zero, 0, 1, 0.5f, playerMovement3D.isFacingRight);
+                pm.GetHit(Vector3.zero, 0, amount, 0.5f, playerMovement3D.isFacingRight);
                 playerMovement3D.TouchGround();
-                playerMovement3D.AddScoreVersus(50);
+                playerMovement3D.AddScore(50);
                 return;
             }
 
             if (playerMovement3D.isGroundPounding)
             {
+                amount *= 4;
                 Debug.Log("Player " + playerMovement3D.playerID + " has GroundPound on Player " + pm.playerID);
-                pm.GetHitByCrushing(5, 1.5f, 3, 6, playerMovement3D.isFacingRight);
+                pm.GetHitByCrushing(amount, 1.5f, 3, 6, playerMovement3D.isFacingRight);
                 playerMovement3D.CancelGroundPound();
-                playerMovement3D.AddScoreVersus(50);
+                playerMovement3D.AddScore(50);
                 return;
             }
 
             if (playerMovement3D.isFalling)
             {
                 playerMovement3D.Bump(0.5f);
-                pm.GetHit(Vector3.zero, 0, 1, 0.5f, playerMovement3D.isFacingRight);
-                playerMovement3D.AddScoreVersus(50);
+                pm.GetHit(Vector3.zero, 0, amount, 0.5f, playerMovement3D.isFacingRight);
+                playerMovement3D.AddScore(50);
                 return;
             }
 

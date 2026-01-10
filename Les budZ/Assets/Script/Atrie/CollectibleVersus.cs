@@ -39,7 +39,7 @@ public class CollectibleVersus : NetworkBehaviour
 
         if (player.isDead.Value) return;
         
-        player.AddScoreVersus(scoreValue);
+        player.AddScore(scoreValue);
 
         Collect();
     }

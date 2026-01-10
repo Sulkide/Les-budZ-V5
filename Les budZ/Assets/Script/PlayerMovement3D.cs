@@ -16,10 +16,10 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private bool Online => GameManager.instance != null && GameManager.instance.isGameOnline;
     private bool HasLocalAuthority => !Online || IsOwner;
-    
+
     private int  offlineCurrentLife;
     private bool offlineIsDead;
-    private int  offlineScoreVersus;
+    private int  offlineScore;
     private bool offlineHasSuperCollectible;
     private bool offlineRestartVote;
     private bool offlineIs3DNow = true;
@@ -52,18 +52,38 @@ public class PlayerMovement3D : NetworkBehaviour
         }
     }
 
-    private int ScoreVersusValue
+    private int ScoreValue
     {
-        get => Online ? scoreVersus.Value : offlineScoreVersus;
+        get
+        {
+            if (Online)
+            {
+                if (GameManager.instance != null && GameManager.instance.isGameVersusMode)
+                    return scoreVersus.Value;
+
+                return scoreCoop.Value;
+            }
+
+            return offlineScore;
+        }
         set
         {
             if (Online)
             {
-                if (IsServer) scoreVersus.Value = value;
+                if (!IsServer) return;
+
+                if (GameManager.instance != null && GameManager.instance.isGameVersusMode)
+                    scoreVersus.Value = value;
+                else
+                    scoreCoop.Value = value;
             }
-            else offlineScoreVersus = value;
+            else
+            {
+                offlineScore = value;
+            }
         }
     }
+
 
     private bool HasSuperCollectibleValue
     {
@@ -130,9 +150,8 @@ public class PlayerMovement3D : NetworkBehaviour
         }
     }
 
-    [Header("Options General")] 
+    [Header("Options General")]
     public int playerID = 0;
-    public int currentMaxLife = 15;
     public float recoveryTime = 2f;
     public float currentForce = 10f;
     public float respawnCooldown = 10f;
@@ -140,7 +159,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public float damageCooldown = 2.5f;
     public float FlipDimensionCoolDown = 1f;
     public float maxAngleWithFriction = 30f;
- 
+    public GameObject nextLevelPrefab;
     public RigidbodyConstraints defaultConstraints;
     public Vector2 moveInput;
     public Vector2 aimInput;
@@ -155,48 +174,48 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool alignToGroundSlope = true;
     public bool use3DMovement = true;
     public bool rotateChildOnDash = true;
-    
+
 
     public bool canWallJump = true;
     public bool canDash = true;
     public bool canAttack = true;
     public bool canGlide = true;
 
-    [Header("FX")] 
+    [Header("FX")]
     [SerializeField] private GameObject runFXPrefabs;
     [SerializeField] private float runParticuleTimer = 0.5f;
     private float currentParticuleTimer;
     [SerializeField] private GameObject landFXPrefab;
     [SerializeField] private GameObject dashFXPrefab;
-    [SerializeField] private Transform fxFeetRoot; 
+    [SerializeField] private Transform fxFeetRoot;
 
 
     [Header("UI")]
-    public GameObject playerCanvas;              
-    public TextMeshProUGUI respawnTextTMP;        
-    public bool DisplayScore = true;                    
-    public TextMeshProUGUI scoreVersusTMP;             
+    public GameObject playerCanvas;
+    public TextMeshProUGUI respawnTextTMP;
+    public bool DisplayScore = true;
+    public TextMeshProUGUI scoreVersusTMP;
     private Coroutine scoreVersusAnimationCoroutine;
     private Coroutine respawnCoroutine;
-    private bool canPressRespawn;    
-    public Image lifeFillImage;             
-    public TextMeshProUGUI currentLifeTMP;  
-    public TextMeshProUGUI maxLifeTMP;    
-    public Image iconImage;                  
-    public PlayerIcon playerIconData;       
+    private bool canPressRespawn;
+    public Image lifeFillImage;
+    public TextMeshProUGUI currentLifeTMP;
+    public TextMeshProUGUI maxLifeTMP;
+    public Image iconImage;
+    public PlayerIcon playerIconData;
     private Coroutine iconAnimationCoroutine;
     private PlayerIconState currentIconState = PlayerIconState.Idle;
-    public TextMeshProUGUI versusTimerTMP;          
-    public GameObject versusResultPanel;            
-    public TextMeshProUGUI[] versusResultLines;    
+    public TextMeshProUGUI versusTimerTMP;
+    public GameObject versusResultPanel;
+    public TextMeshProUGUI[] versusResultLines;
     private bool versusResultShown = false;
-    public TextMeshProUGUI playerNameTMP;  
+    public TextMeshProUGUI playerNameTMP;
     private bool hasVotedRestart = false;
     [SerializeField] private GameObject pauseMenuRoot;
     [SerializeField] private bool freezePlayerWhenPauseMenuOpen = true;
     private bool pauseMenuOpen = false;
 
-    
+
     public enum PlayerIconState
     {
         Idle,
@@ -205,12 +224,12 @@ public class PlayerMovement3D : NetworkBehaviour
         Dead
     }
 
-    
+
     [Space(5)]
     [Header("Dynamique Collider")]
     public float raycastLimit = 100f;
-    public float collider2DMaxSizeZ = 100f;     
-    public float collider2DResizeDelay = 1f;   
+    public float collider2DMaxSizeZ = 100f;
+    public float collider2DResizeDelay = 1f;
 
     private bool dynamicColliderInitialized;
     private bool lastIs3DState;
@@ -240,12 +259,12 @@ public class PlayerMovement3D : NetworkBehaviour
     private float groundCheckOffsetZ3D;
     private float frontWallCheckOffsetZ3D;
     private float backWallCheckOffsetZ3D;
-    
+
     private float currentCollider2DCenterZ;
     private float currentCollider2DSizeZ;
     private float currentPosExtentZ2D;
     private float currentNegExtentZ2D;
-    
+
     private float targetCollider2DSizeZ;
     private float targetCollider2DCenterZ;
     private float targetPosExtentZ2D;
@@ -258,19 +277,19 @@ public class PlayerMovement3D : NetworkBehaviour
     private Collider lastNegZHit;
     private bool collider2DAtMaxExtent;
 
-   
-    
 
 
-    
+
+
+
     [SerializeField] private bool debugCollider2DRays = true;
     [SerializeField] private Color debugRayPosColor = Color.green;
     [SerializeField] private Color debugRayNegColor = Color.magenta;
     [SerializeField] private Color debugRayHitColor = Color.red;
     [SerializeField] private Color debugRayOriginColor = Color.cyan;
 
-    
-    
+
+
     [Space(5)]
     [Header("Online")]
     public NetworkVariable<FixedString64Bytes> netAnimationState = new NetworkVariable<FixedString64Bytes>("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -279,9 +298,10 @@ public class PlayerMovement3D : NetworkBehaviour
     public NetworkVariable<bool> isCrushedNetwork = new NetworkVariable<bool>(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
     public NetworkVariable<bool> isDead = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> scoreVersus = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<int> scoreCoop = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> hasSuperCollectible = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> restartVote = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    
+
     [Space(5)]
     [Header("References")]
     public PlayerData data;
@@ -320,7 +340,7 @@ public class PlayerMovement3D : NetworkBehaviour
     [SerializeField] private Transform airAttackGroundCheckPoint;
     [SerializeField] private float airAttackGroundRadius = 0.5f;
     [SerializeField] private float airAttackGroundHeight = 1.0f;
-    [SerializeField] private bool glideRequested;  
+    [SerializeField] private bool glideRequested;
 
 
     [Space(5)]
@@ -333,19 +353,19 @@ public class PlayerMovement3D : NetworkBehaviour
     [Header("Parametres des états")]
     public bool cannotMove;
 
-    public bool IsRagdoll 
+    public bool IsRagdoll
     {
         get { return ragdollController != null && ragdollController.IsRagdollActive; }
     }
-    
+
     public bool areControllsRemoved;
     public bool wasGroundedLastFrame = false;
     public bool dashRefilling { get; private set; }
     public bool isFacingRight { get; private set; }
     public bool isJumping { get; private set; }
-    
+
     public bool isGliding { get; private set; }
-    
+
     public bool isFalling { get; private set; }
     public bool isWallJumping { get; private set; }
     public bool isDashing { get; private set; }
@@ -357,15 +377,15 @@ public class PlayerMovement3D : NetworkBehaviour
     public bool isAirAttcking { get; private set; }
     public bool isMovingAttcking { get; private set; }
     public bool isIdleAttcking { get; private set; }
-    public bool isIdleAttackStopping { get; private set; }  
-    public float idleAttackStartTime { get; private set; }  
-    public float idleAttackStopStartTime { get; private set; } 
-    private bool idleAttackReleaseQueued; 
+    public bool isIdleAttackStopping { get; private set; }
+    public float idleAttackStartTime { get; private set; }
+    public float idleAttackStopStartTime { get; private set; }
+    private bool idleAttackReleaseQueued;
     public bool isJumpCut { get; private set; }
     public bool isJumpFalling { get; private set; }
     public bool isGroundSliding { get; private set; }
     public bool isDashRefilling { get; private set; }
-    
+
     public bool dashCancelledExternally { get; private set; }
     public bool isDashAttacking { get; private set; }
     public bool isStunned { get; private set; }
@@ -390,6 +410,10 @@ public class PlayerMovement3D : NetworkBehaviour
     public float lastPressedDashTime { get; private set; }
     public Vector3 lastDashDir { get; private set; }
 
+    private float lastDashPressedAt = -999f;
+    private float lastJumpPressedAt = -999f;
+    private float longJumpCoyoteUntil = -999f;
+
     public Vector3 stayAirAttackVelocity { get; private set; }
     public float stayAirCurrentHeight { get; private set; }
     public float lastJumpMaxY { get; private set; }
@@ -398,15 +422,15 @@ public class PlayerMovement3D : NetworkBehaviour
     public float lastJumpButtonTime { get; private set; }
 
     [Header("Mode versus")]
-    [SerializeField] private GameObject superCollectibleTimerPrefab;      
-    [SerializeField] private float superCollectibleTimerLifetime = 6f;    
-    [SerializeField] private float superCollectibleTimerPickupLockDuration = 2f; 
-    [SerializeField] private float superCollectibleDropHeight = 1.0f;     
+    [SerializeField] private GameObject superCollectibleTimerPrefab;
+    [SerializeField] private float superCollectibleTimerLifetime = 6f;
+    [SerializeField] private float superCollectibleTimerPickupLockDuration = 2f;
+    [SerializeField] private float superCollectibleDropHeight = 1.0f;
 
     private Coroutine superCollectibleCoroutine;
     private int superCollectibleScorePerTick = 10;
     private float superCollectibleInterval = 2f;
-    
+
     [Header("Nom des Actions")]
     public string actionMapName = "Gameplay";
     public string actionMoveName = "Move";
@@ -447,7 +471,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void Awake()
     {
-        
+
         rb = GetComponent<Rigidbody>();
         colliderBottomBody = GetComponent<CapsuleCollider>();
         playerControls = GetComponent<PlayerInput>();
@@ -461,17 +485,17 @@ public class PlayerMovement3D : NetworkBehaviour
             playerControls.enabled = true;
             playerControls.actions.Enable();
         }
-        
-        defaultConstraints = rb.constraints; 
-        
+
+        defaultConstraints = rb.constraints;
+
         if (!Online)
-            offlineCurrentLife = currentMaxLife;
+            offlineCurrentLife = GameManager.instance.maxLifePlayer;
 
         if (currentLifeTMP != null)
             currentLifeTMP.text = CurrentLifeValue.ToString();
 
         if (maxLifeTMP != null)
-            maxLifeTMP.text = currentMaxLife.ToString();
+            maxLifeTMP.text = GameManager.instance.maxLifePlayer.ToString();
     }
 
     void Start()
@@ -480,7 +504,7 @@ public class PlayerMovement3D : NetworkBehaviour
         gameObject.layer = LayerMask.NameToLayer("Player");
         capsuleSize = colliderBottomBody.bounds.size;
         capsuleCenter = colliderBottomBody.bounds.center;
-        
+
         InitializeDynamicColliders();
 
         if (data != null)
@@ -510,7 +534,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             dashesLeft = 1;
         }
-        
+
         OnSpawnOffline();
     }
 
@@ -521,7 +545,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (!HasLocalAuthority) return;
         if (Online && !IsSpawned) return;
-        
+
         var actions = playerControls.actions;
         if (!string.IsNullOrEmpty(actionMapName))
             actions.FindActionMap(actionMapName, throwIfNotFound: true);
@@ -575,7 +599,7 @@ public class PlayerMovement3D : NetworkBehaviour
         #region DISABLE INPUT ACTIONS
 
         if (!HasLocalAuthority) return;
-        
+
         if (jumpAction != null)
         {
             jumpAction.performed -= OnJumpPressed;
@@ -632,7 +656,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         #endregion
-        
+
         if (iconAnimationCoroutine != null)
         {
             StopCoroutine(iconAnimationCoroutine);
@@ -644,10 +668,10 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (GameManager.instance.isGameOnline) return;
 
-        // Offline init
+
         offlineIsDead = false;
-        offlineCurrentLife = currentMaxLife;
-        offlineScoreVersus = 0;
+        offlineCurrentLife = GameManager.instance.maxLifePlayer;
+        offlineScore = 0;
         offlineHasSuperCollectible = false;
         offlineRestartVote = false;
         offlineIs3DNow = GameManager.instance.is3d;
@@ -657,53 +681,56 @@ public class PlayerMovement3D : NetworkBehaviour
         GameManager.instance.RegisterPlayer(this);
         playerID = GameManager.instance.AssignePlayerID()-1;
         gameObject.name = "Player " + playerID;
-        hasVotedRestart = false; 
+        hasVotedRestart = false;
 
-        UpdateScoreVersusUI(ScoreVersusValue);
+        UpdateScoreVersusUI(ScoreValue);
 
         if (playerCanvas != null)
             playerCanvas.SetActive(true);
-    
+
         if (versusResultPanel != null)
             versusResultPanel.SetActive(false);
 
         versusResultShown = false;
-        
+
         if (pauseMenuRoot != null)
             pauseMenuRoot.SetActive(false);
-        
+
         GameManager.instance.OnSoloPauseInvalidated += HandleSoloPauseInvalidated;
 
         playerControls.enabled = true;
         playerControls.actions.Enable();
         rb.interpolation = RigidbodyInterpolation.None;
-        
+
     }
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
-            CurrentLifeValue = currentMaxLife;
+            CurrentLifeValue = GameManager.instance.maxLifePlayer;
             IsDeadValue = false;
         }
 
         netAnimationState.OnValueChanged += OnAnimationChanged;
-        scoreVersus.OnValueChanged += OnScoreVersusChanged;
-        GameManager.instance.RegisterPlayer(this);
-        hasVotedRestart = false; 
 
-        UpdateScoreVersusUI(ScoreVersusValue);
+        scoreVersus.OnValueChanged += OnScoreVersusChanged;
+        scoreCoop.OnValueChanged += OnScoreCoopChanged;
+        
+        GameManager.instance.RegisterPlayer(this);
+        hasVotedRestart = false;
+
+        UpdateScoreVersusUI(ScoreValue);
         playerID = GameManager.instance.AssignePlayerID()-1;
         gameObject.name = "Player " + playerID;
 
         if (playerCanvas != null)
             playerCanvas.SetActive(IsOwner);
-    
+
         if (versusResultPanel != null)
             versusResultPanel.SetActive(false);
 
         versusResultShown = false;
-        
+
         if (pauseMenuRoot != null)
             pauseMenuRoot.SetActive(false);
 
@@ -728,12 +755,13 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-    
-    
+
+
     public override void OnNetworkDespawn()
     {
         netAnimationState.OnValueChanged -= OnAnimationChanged;
         scoreVersus.OnValueChanged -= OnScoreVersusChanged;
+        scoreCoop.OnValueChanged -= OnScoreCoopChanged;
         currentLife.OnValueChanged -= OnLifeChanged;
 
         if (GameManager.instance != null)
@@ -751,9 +779,8 @@ public class PlayerMovement3D : NetworkBehaviour
     public void OnDespawnOffline()
     {
         if (GameManager.instance.isGameOnline) return;
-        
-        currentLife.OnValueChanged -= OnLifeChanged;
 
+        currentLife.OnValueChanged -= OnLifeChanged;
         
         GameManager.instance.OnSoloPauseInvalidated -= HandleSoloPauseInvalidated;
         GameManager.instance.UnregisterPlayer(this);
@@ -769,11 +796,11 @@ public class PlayerMovement3D : NetworkBehaviour
     private void Update()
     {
         if (!HasLocalAuthority) return;
-        
-        // print("update");
+
+
 
         UpdateVersusUI();
-        
+
         if (GameManager.instance != null && GameManager.instance.versusMatchFinished)
         {
             cannotMove = true;
@@ -786,14 +813,14 @@ public class PlayerMovement3D : NetworkBehaviour
             currentLifeTMP.text = CurrentLifeValue.ToString();
 
         if (maxLifeTMP != null)
-            maxLifeTMP.text = currentMaxLife.ToString();
-        
+            maxLifeTMP.text = GameManager.instance.maxLifePlayer.ToString();
+
         Is3DNowValue = GameManager.instance.is3d;
         IsCrushedNetworkValue = isCrushed;
         UpdateDynamicColliders();
-        
+
         if (moveAction == null) return;
-        
+
         moveInput = moveAction.ReadValue<Vector2>();
         aimInput = aimAction.ReadValue<Vector2>();
         dpadInput = dpadAction.ReadValue<Vector2>();
@@ -804,7 +831,7 @@ public class PlayerMovement3D : NetworkBehaviour
         lastOnWallLeftTime -= Time.deltaTime;
         lastOnWallRightTime -= Time.deltaTime;
         lastPressedJumpTime -= Time.deltaTime;
-        
+
         if (trackJumpHeight && !wasGroundedLastFrame)
         {
             lastJumpMaxY = Mathf.Max(lastJumpMaxY, transform.position.y);
@@ -823,7 +850,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         UpdatePlayerNameUI();
     }
-    
+
     void FixedUpdate()
     {
         if (!HasLocalAuthority)
@@ -832,13 +859,13 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
         rb.isKinematic = false;
-        
+
         if (IsDeadValue || IsRagdoll)
             return;
 
         if (isDashing || isDashAttacking)
             return;
-        
+
         if (isStayAirAttacking)
         {
             SwitchAnimation("isStayAttack");
@@ -846,7 +873,7 @@ public class PlayerMovement3D : NetworkBehaviour
             ApplyCustomGravity();
             return;
         }
-        
+
         bool pushingIntoWall =
             (lastOnWallLeftTime > 0f  && moveInput.x < -0.01f) ||
             (lastOnWallRightTime > 0f && moveInput.x >  0.01f);
@@ -868,7 +895,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Slide3D();
             return;
         }
-        
+
         ApplyCustomGravity();
 
         if (IsDeadValue) return;
@@ -901,7 +928,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!HasLocalAuthority) return;
 
         var gm = GameManager.instance;
-        
+
         if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
         {
             Debug.Log("[Versus] Pause pressed -> Quit application");
@@ -918,7 +945,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (!HasLocalAuthority) return;
 
         var gm = GameManager.instance;
-        
+
         if (gm != null && gm.useVersusTimer && gm.versusMatchFinished)
         {
             if (!RestartVoteValue && !hasVotedRestart)
@@ -926,7 +953,7 @@ public class PlayerMovement3D : NetworkBehaviour
                 hasVotedRestart = true;
                 Debug.Log($"[Versus] Player {playerID} pressed Start to vote restart.");
                 SendRestartVoteServerRpc();
-                
+
                 if (respawnTextTMP != null)
                 {
                     respawnTextTMP.gameObject.SetActive(true);
@@ -939,13 +966,13 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         Debug.Log("OnStartPressed");
-        
+
         if (IsDeadValue && canPressRespawn)
         {
             if (Online)
                 RequestRespawnServerRpc();
             else
-                Respawn();
+                RespawnOnlineVersus();
             return;
         }
 
@@ -955,7 +982,7 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
     }
-    
+
 
 
     private void OnGrapReleased(InputAction.CallbackContext obj)
@@ -979,7 +1006,7 @@ public class PlayerMovement3D : NetworkBehaviour
             isStayAirAttacking = false;
             SwitchAnimation("");
         }
-        
+
         if (isIdleAttcking)
         {
             idleAttackReleaseQueued = true;
@@ -990,14 +1017,14 @@ public class PlayerMovement3D : NetworkBehaviour
     private void OnAttackPressed(InputAction.CallbackContext obj)
     {
         if (!HasLocalAuthority || cannotMove) return;
-        
+
         if (!canAttack) return;
         if (isDashing || isDashAttacking) return;
         if (isGroundPounding) return;
 
-        
+
         bool grounded = lastOnGroundTime > 0f && Mathf.Abs(rb.linearVelocity.y) < 0.01f;
-        
+
         if (!wasGroundedLastFrame)
         {
             isIdleAttcking = false;
@@ -1043,24 +1070,25 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (!HasLocalAuthority || cannotMove) return;
         if (!canDash) return;
+
         lastPressedDashTime = data.dashInputBufferTime;
+        lastDashPressedAt = Time.time;
+
+        float tol = (data != null) ? Mathf.Max(0f, data.longJumpInputTolerance) : 0f;
+        bool dashGroundedNow = (lastOnGroundTime > 0f) || wasGroundedLastFrame;
+        longJumpCoyoteUntil = dashGroundedNow ? (Time.time + tol) : -999f;
     }
 
     private void OnDashReleased(InputAction.CallbackContext obj)
     {
         if (!HasLocalAuthority || cannotMove) return;
         if (!canDash) return;
-        lastPressedDashTime = 0;
     }
 
     private void OnJumpReleased(InputAction.CallbackContext obj)
     {
         if (!HasLocalAuthority || cannotMove) return;
-        if (isGliding)
-        {
-            CancelGlide();
-        }
-
+        CancelGlide();
         if (CanJumpCut())
             isJumpCut = true;
     }
@@ -1069,27 +1097,27 @@ public class PlayerMovement3D : NetworkBehaviour
     private void OnJumpPressed(InputAction.CallbackContext obj)
     {
         if (!HasLocalAuthority || cannotMove) return;
-        
+
         if (isCrushed)
         {
             DisabledCrushedState();
             return;
         }
-        
+
         lastJumpButtonTime = Time.time;
 
         if (isStayAirAttacking)
             return;
 
-        
+
         bool grounded = lastOnGroundTime > 0f;
         bool inAir = !grounded;
 
         if (canGlide && inAir && !isGliding)
         {
-            glideRequested = true; 
+            glideRequested = true;
         }
-        
+
         lastPressedJumpTime = data.jumpInputBufferTime;
     }
 
@@ -1110,11 +1138,11 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
 
         float baseGravity = data.gravityScale;
-        
+
         if (isGliding)
         {
             SetGravityScale(baseGravity * data.glideGravityMult);
-            
+
             Vector3 vel = rb.linearVelocity;
             if (vel.y < -data.glideMaxFallSpeed)
             {
@@ -1125,7 +1153,7 @@ public class PlayerMovement3D : NetworkBehaviour
             rb.AddForce(Physics.gravity * gravityScale, ForceMode.Acceleration);
             return;
         }
-        
+
         if (isJumpCut && rb.linearVelocity.y > 0f)
         {
             SetGravityScale(baseGravity * data.jumpCutGravityMult);
@@ -1224,7 +1252,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (playerNameTMP != null)
             playerNameTMP.text = text;
-        
+
     }
 
 
@@ -1270,7 +1298,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void CheckDirectionToFace(bool moveRight)
     {
         if (cannotMove) return;
-        
+
         if (moveRight != isFacingRight)
         {
             if (!isDashing)
@@ -1286,7 +1314,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleJumpState()
     {
-        
+
         if (cannotMove) return;
         if (isStunned) return;
         if (isJumping && rb.linearVelocity.y < 0f)
@@ -1318,9 +1346,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void HandleJumpBuffer()
     {
-        
+
         if (cannotMove) return;
         if (data == null) return;
+
+
+        if (TryLongJump())
+            return;
 
         if (CanJump() && lastPressedJumpTime > 0f)
         {
@@ -1349,14 +1381,119 @@ public class PlayerMovement3D : NetworkBehaviour
             lastPressedJumpTime = 0f;
         }
     }
-    
-    private void HandleGlideState()
+
+
+
+    private bool TryLongJump()
+    {
+        if (cannotMove) return false;
+        if (data == null || rb == null) return false;
+
+        if (isStunned || isCrushed) return false;
+        if (isGroundPounding || isStayAirAttacking) return false;
+
+        float tol = Mathf.Max(0f, data.longJumpInputTolerance);
+
+        if (lastPressedDashTime <= 0f) return false;
+        if (lastPressedJumpTime <= 0f) return false;
+
+        float dt = lastJumpPressedAt - lastDashPressedAt;
+        if (dt < 0f || dt > tol) return false;
+
+        bool groundOk = (lastOnGroundTime > 0f) || (Time.time <= longJumpCoyoteUntil);
+        if (!groundOk) return false;
+
+        if (!CanDash()) return false;
+
+        if (isDashing || isDashAttacking)
+        {
+            CancelDash();
+            isDashing = false;
+            isDashAttacking = false;
+        }
+
+        StartLongJump();
+
+        lastPressedDashTime = 0f;
+        lastPressedJumpTime = 0f;
+        lastDashPressedAt = -999f;
+        lastJumpPressedAt = -999f;
+        longJumpCoyoteUntil = -999f;
+
+        return true;
+    }
+
+    private void StartLongJump()
+    {
+        if (data == null || rb == null) return;
+
+        if (dashesLeft > 0)
+        {
+            dashesLeft -= 1;
+            StartCoroutine(RefillDash(1));
+        }
+
+        isGliding = false;
+        isJumpCut = false;
+        isJumpFalling = false;
+        isWallJumping = false;
+        isJumping = true;
+
+        lastOnGroundTime = 0f;
+
+        Vector3 dir = GetLongJumpDirection();
+
+        Vector3 vel = rb.linearVelocity;
+
+        vel.x = dir.x * data.longJumpSpeed;
+        vel.z = dir.z * data.longJumpSpeed;
+
+        float upSpeed = data.longJumpVelocity;
+
+        if (vel.y < upSpeed)
+            vel.y = upSpeed;
+
+        if (vel.y > data.longJumpMaxHeight)
+            vel.y = data.longJumpMaxHeight;
+
+        rb.linearVelocity = vel;
+
+        SwitchAnimation("isJumping");
+    }
+
+    private Vector3 GetLongJumpDirection()
+    {
+        Vector3 dir = is3DNow.Value
+            ? new Vector3(moveInput.x, 0f, moveInput.y)
+            : new Vector3(moveInput.x, 0f, 0f);
+
+        if (dir.sqrMagnitude < 0.0001f)
+        {
+            if (is3DNow.Value)
+            {
+                Vector3 dashPlanar = new Vector3(lastDashDir.x, 0f, lastDashDir.z);
+                dir = (dashPlanar.sqrMagnitude > 0.0001f) ? dashPlanar : transform.forward;
+            }
+            else
+            {
+                dir = isFacingRight ? Vector3.right : Vector3.left;
+            }
+        }
+
+        if (!is3DNow.Value)
+            dir = new Vector3(Mathf.Sign(dir.x == 0f ? (isFacingRight ? 1f : -1f) : dir.x), 0f, 0f);
+
+        return dir.normalized;
+    }
+
+
+private void HandleGlideState()
     {
         if (cannotMove) return;
         if (!canGlide || data == null || rb == null) return;
 
         bool grounded = lastOnGroundTime > 0f;
-        
+
         if (grounded)
         {
             if (isGliding)
@@ -1384,10 +1521,10 @@ public class PlayerMovement3D : NetworkBehaviour
 
             return;
         }
-        
+
         if (!glideRequested)
             return;
-        
+
         if (rb.linearVelocity.y >= 0f)
             return;
 
@@ -1408,7 +1545,7 @@ public class PlayerMovement3D : NetworkBehaviour
         glideRequested = false;
         isJumpCut = false;
         isJumpFalling = false;
-        
+
         Vector3 vel = rb.linearVelocity;
         if (data.glideStartVerticalSpeed > 0f && vel.y < -data.glideStartVerticalSpeed)
         {
@@ -1421,11 +1558,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void CancelGlide()
     {
-        if (!isGliding) return;
+        glideRequested = false;
+
+        if (!isGliding)
+            return;
 
         isGliding = false;
-        glideRequested = false;
-        
+
         if (lastOnGroundTime <= 0f &&
             !isJumping && !isJumpFalling &&
             !isAirAttcking && !isStayAirAttacking)
@@ -1436,10 +1575,11 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
+
     void HandleDashState()
     {
         if (cannotMove) return;
-        if (isGroundPounding) 
+        if (isGroundPounding)
             return;
 
         if (!CanDash() || lastPressedDashTime <= 0f)
@@ -1454,7 +1594,7 @@ public class PlayerMovement3D : NetworkBehaviour
             isStayAirAttacking = false;
 
         Vector2 dashInput = moveInput;
-        
+
         if (GameManager.instance != null && GameManager.instance.is3d)
         {
             dashInput = new Vector2(moveInput.y, moveInput.x);
@@ -1474,7 +1614,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (inputDir.sqrMagnitude < 0.0001f)
             return;
-        
+
         bool inAir = !wasGroundedLastFrame;
 
 
@@ -1492,7 +1632,7 @@ public class PlayerMovement3D : NetworkBehaviour
             }
         }
 
-        
+
         lastDashDir = inputDir.normalized;
 
         isDashing = true;
@@ -1505,12 +1645,12 @@ public class PlayerMovement3D : NetworkBehaviour
 
         lastPressedDashTime = 0f;
     }
-    
+
     private IEnumerator GroundPoundLanding()
     {
         cannotMove = true;
         SwitchAnimation("isLanded");
-        
+
         yield return new WaitForSeconds(data.groundPoundFreezeTime);
 
         cannotMove = false;
@@ -1518,15 +1658,15 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-    
+
 
     private void HandleAttackState()
     {
         if (cannotMove) return;
         if (isStunned) return;
-        
+
         HandleIdleAttackHoldState();
-        
+
         if (isMovingAttcking && Time.time >= attackStateEndTime)
         {
             isMovingAttcking = false;
@@ -1626,23 +1766,23 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (!isIdleAttcking && !isIdleAttackStopping)
             return;
-        
+
         if (isIdleAttcking)
         {
             bool minHoldElapsed = Time.time >= idleAttackStartTime + data.idleAttackMinHoldTime;
-            
+
             bool attackReleasedNow = idleAttackReleaseQueued || (attackAction != null && !attackAction.IsPressed());
-            
+
             if (minHoldElapsed && attackReleasedNow)
             {
                 isIdleAttcking = false;
                 idleAttackReleaseQueued = false;
                 StartIdleAttackStop();
             }
-            
+
             return;
         }
-        
+
         if (isIdleAttackStopping)
         {
             if (Time.time >= idleAttackStopStartTime + data.idleAttackStopDuration)
@@ -1657,7 +1797,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
     }
 
-    
+
     public bool CanDash()
     {
         if (!canDash || data == null) return false;
@@ -1685,7 +1825,7 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-    
+
 
     private bool CanJump()
     {
@@ -1749,7 +1889,7 @@ public class PlayerMovement3D : NetworkBehaviour
     {
         if (IsWallSlippery())
             return false;
-        
+
         if (isStayAirAttacking)
             return false;
 
@@ -1770,7 +1910,7 @@ public class PlayerMovement3D : NetworkBehaviour
       colliderGroundPound.enabled = value;
       colliderWeapon.enabled = value;
     }
-    
+
     private Vector3 GetRespawnPosition()
     {
         GameObject levelObj = GameObject.FindGameObjectWithTag("Level");
@@ -1779,7 +1919,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Debug.LogWarning("PlayerMovement3D: aucun objet avec le tag 'Level' trouvé, respawn sur place.");
             return transform.position;
         }
-        
+
         var list = levelObj.GetComponent<RespawnPointList>();
         if (list == null)
         {
@@ -1792,7 +1932,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Debug.LogWarning("PlayerMovement3D: aucune respawnPoint dans 'respawnPointList', respawn sur place.");
             return transform.position;
         }
-        
+
         int index = Mathf.Clamp(playerID, 0, list.respawnPoint.Count - 1);
         Transform point = list.respawnPoint[index];
 
@@ -1801,7 +1941,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
     #endregion
-    
+
     #region DAMAGE
 
     public void GetHit(Vector3 direction, float force, int amount, float duration, bool facing)
@@ -1810,16 +1950,16 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             Damage(amount, facing);
             Recovery(!(amount <=0));
-        
+
             if (IsCrushedNetworkValue) return;
-        
+
             Stunned(duration);
         }
 
         Debug.Log("player " + playerID + " get hit, is crushed :" + isCrushed);
         Knockback(direction, force);
-        
-        
+
+
     }
 
     public void GetHitByCrushing(int amount, float durationMin, int tapActionMin, int tapActionMax, bool facing)
@@ -1845,7 +1985,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             ApplyDamageLocal(amount, facing);
         }
-        
+
         UpdateIconFromAnimation("isDamaged");
 
     }
@@ -1862,10 +2002,10 @@ public class PlayerMovement3D : NetworkBehaviour
             Debug.Log($"[SuperBonus] Player {playerID} perd le super bonus suite à un hit.");
             LoseSuperCollectibleAndSpawnTimer();
         }
-        
+
         if (CurrentLifeValue <= 0)
         {
-            Death(facing);
+            DeathOnline(facing);
         }
 
     }
@@ -1886,10 +2026,10 @@ public class PlayerMovement3D : NetworkBehaviour
             Debug.Log($"[SuperBonus] Player {playerID} perd le super bonus suite à un hit.");
             LoseSuperCollectibleAndSpawnTimer();
         }
-        
+
         if (CurrentLifeValue <= 0)
         {
-            Death(facing);
+            DeathOnline(facing);
         }
 
         Debug.Log($"Player {playerID} just Apply damage : amount={amount}, life={CurrentLifeValue}");
@@ -1910,21 +2050,21 @@ public class PlayerMovement3D : NetworkBehaviour
     private IEnumerator StunRoutine(float duration)
     {
         if (duration == 0) yield break;
-    
-        cannotMove = true; 
-        isStunned = true; 
-        
+
+        cannotMove = true;
+        isStunned = true;
+
         SwitchAnimationByNetwork();
 
         yield return new WaitForSeconds(duration);
-    
-        cannotMove = false; 
-        isStunned = false; 
+
+        cannotMove = false;
+        isStunned = false;
 
         if (!isIdleAttcking && !isMovingAttcking && !isAirAttcking && !isStayAirAttacking)
             SwitchAnimation("");
     }
-    
+
     private void Crushed(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
     {
         if (duration <= 0) return;
@@ -1943,9 +2083,9 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void ApplyCrushedLocal(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
     {
-                
+
         if (IsCrushedNetworkValue) return;
-        
+
         StartCoroutine(CrushRoutine(duration, tapActionMin, tapActionMax, animationName));
     }
 
@@ -1959,12 +2099,12 @@ public class PlayerMovement3D : NetworkBehaviour
     private void CrushedOwnerClientRpc(float duration, int tapActionMin, int tapActionMax, string animationName = "isCrushed")
     {
         if (!HasLocalAuthority) return;
-        
+
         if (IsCrushedNetworkValue) return;
-        
+
         StartCoroutine(CrushRoutine(duration, tapActionMin, tapActionMax, animationName));
     }
-    
+
 
 
 
@@ -2006,25 +2146,25 @@ public class PlayerMovement3D : NetworkBehaviour
     private IEnumerator DisabledCrushedStateCoroutine()
     {
         TriggerLandBounceFX();
-            
+
         Debug.Log("Player " + playerID + "just StartCoroutine and crushedTapActionLeft = " +
                   crushedTapActionLeft);
-        
+
         yield return new WaitForSeconds(0.5f);
-        
+
         --crushedTapActionLeft;
 
         if (crushedTapActionLeft <= 1)
         {
             isCrushed = false;
             crushedTapActionLeft = 0;
-            
+
             Debug.Log("Player " + playerID + "just FinishedCoroutine and crushedTapActionLeft = " +
                       crushedTapActionLeft + " try to jump ");
-            
+
             yield break;
         }
-        
+
         Debug.Log("Player " + playerID + "just Finished Coroutine and crushedTapActionLeft = " +
                   crushedTapActionLeft);
     }
@@ -2075,7 +2215,7 @@ public class PlayerMovement3D : NetworkBehaviour
         isRecovery = false;
     }
 
-    
+
     [ServerRpc(RequireOwnership = false)]
     private void RequestRecoveryServerRpc()
     {
@@ -2090,10 +2230,47 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-
-    public void Death(bool facing)
+    public void DeathLocal(bool facing)
     {
+        if (Online) return;
         
+        if (IsDeadValue) return;
+
+        IsDeadValue = true;
+        cannotMove  = true;
+
+        Debug.Log("Death local");
+
+        if (rb != null)
+        {
+            rb.linearVelocity  = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+
+        OnDeathLocal(facing);
+    }
+    
+    private void OnDeathLocal(bool facing)
+    {
+        if (ragdollController != null)
+        {
+            ragdollController.EnableRagdoll(true);
+            ragdollController.PlayDeathImpulse(facing);
+        }
+
+        SetIconState(PlayerIconState.Dead, true);
+        UpdateLifeUI(CurrentLifeValue, GameManager.instance.maxLifePlayer);
+
+        if (respawnCoroutine != null)
+            StopCoroutine(respawnCoroutine);
+
+        respawnCoroutine = StartCoroutine(RespawnCountdownRoutine());
+    }
+
+    public void DeathOnline(bool facing)
+    {
+
         if (!IsServer)
             return;
 
@@ -2103,12 +2280,12 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             LoseSuperCollectibleAndSpawnTimer();
         }
-        
+
         IsDeadValue = true;
         cannotMove   = true;
 
         Debug.Log("Death");
-        
+
         if (rb != null)
         {
             rb.linearVelocity  = Vector3.zero;
@@ -2127,10 +2304,10 @@ public class PlayerMovement3D : NetworkBehaviour
             ragdollController.EnableRagdoll(true);
             ragdollController.PlayDeathImpulse(facing);
         }
-        
+
         SetIconState(PlayerIconState.Dead, true);
-        UpdateLifeUI(CurrentLifeValue, currentMaxLife);
-        
+        UpdateLifeUI(CurrentLifeValue, GameManager.instance.maxLifePlayer);
+
         if (HasLocalAuthority)
         {
             if (respawnCoroutine != null)
@@ -2157,26 +2334,35 @@ public class PlayerMovement3D : NetworkBehaviour
             timer -= Time.deltaTime;
             yield return null;
         }
-        
+
         canPressRespawn = true;
         SetRespawnMessage("Appuyez sur Start pour respawn");
     }
 
     private void SetRespawnMessage(string message)
     {
-        if (!HasLocalAuthority) return; 
+        if (!HasLocalAuthority) return;
 
         if (respawnTextTMP != null)
             respawnTextTMP.text = message;
     }
-    
-    public void Respawn()
+
+    public void RespawnLocal()
     {
-        if (Online && !IsServer)
-            return;
-        
+        if (Online) return;
+    }
+
+    public void RespawnOnlineCoop()
+    {
+        if (Online && !IsServer) return;
+    }
+
+    public void RespawnOnlineVersus()
+    {
+        if (Online && !IsServer) return;
+
         Vector3 spawnPos = GetRespawnPosition();
-        
+
         transform.position = spawnPos;
 
         if (rb != null)
@@ -2187,11 +2373,11 @@ public class PlayerMovement3D : NetworkBehaviour
 
         IsDeadValue = false;
         cannotMove   = false;
-        
-        CurrentLifeValue = currentMaxLife;
-        
+
+        CurrentLifeValue = GameManager.instance.maxLifePlayer;
+
         RespawnClientRpc(spawnPos);
-        
+
         StartRecoveryClientRpc();
     }
     [ServerRpc(RequireOwnership = true)]
@@ -2204,13 +2390,13 @@ public class PlayerMovement3D : NetworkBehaviour
             return;
         }
 
-        if (!IsDeadValue) 
+        if (!IsDeadValue)
             return;
 
-        Respawn();
+        RespawnOnlineVersus();
     }
-    
-    
+
+
     [ClientRpc]
     public void SetCannotMoveClientRpc(bool value)
     {
@@ -2222,12 +2408,12 @@ public class PlayerMovement3D : NetworkBehaviour
     private void RespawnClientRpc(Vector3 spawnPos)
     {
         transform.position = spawnPos;
-    
+
         if (ragdollController != null)
             ragdollController.EnableRagdoll(false);
-    
+
         SetIconState(PlayerIconState.Idle, true);
-        UpdateLifeUI(CurrentLifeValue, currentMaxLife);
+        UpdateLifeUI(CurrentLifeValue, GameManager.instance.maxLifePlayer);
         if (HasLocalAuthority)
         {
             if (respawnTextTMP != null)
@@ -2244,20 +2430,20 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-    
-    
+
+
     #endregion
 
     #region MOVEMENT
 
     private void HandleMovement2D()
     {
-        
+
         if (cannotMove) return;
         if (isStunned) return;
         if (isCrushed) return;
         if (isIdleAttcking || isIdleAttackStopping) return;
-        
+
         float currentVelX = rb.linearVelocity.x;
         float desiredSpeed = targetSpeed;
         float accelRate;
@@ -2289,7 +2475,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         rb.AddForce(Vector3.right * movement, ForceMode.Force);
 
-        //animation
+
 
         if (isJumping || isJumpFalling || isIdleAttcking || isMovingAttcking ||
             isAirAttcking || isStayAirAttacking || isGliding) return;
@@ -2314,7 +2500,7 @@ public class PlayerMovement3D : NetworkBehaviour
     {
 
         if (cannotMove) return;
-        
+
         if (isStunned) return;
         if (isCrushed) return;
         if (isIdleAttcking || isIdleAttackStopping) return;
@@ -2347,7 +2533,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         rb.AddForce(movement, ForceMode.Force);
 
-        //animation
+
 
         if (isJumping || isJumpFalling || isIdleAttcking || isMovingAttcking ||
             isAirAttcking || isStayAirAttacking || isGliding) return;
@@ -2366,13 +2552,13 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             SwitchAnimation("isWalking");
         }
-        
+
     }
 
     public void Jump()
     {
         if (isIdleAttcking || isIdleAttackStopping) return;
-        
+
         lastPressedJumpTime = 0;
         lastOnGroundTime = 0;
 
@@ -2387,13 +2573,13 @@ public class PlayerMovement3D : NetworkBehaviour
 
         rb.AddForce(Vector3.up * force, ForceMode.Impulse);
     }
-    
+
     public void Bump(float multiplier = 0.1f)
     {
         if (isCrushed) return;
         if (multiplier <= 0f)
             multiplier = 1f;
-        
+
         RequestBumpServerRpc(multiplier);
     }
 
@@ -2414,18 +2600,18 @@ public class PlayerMovement3D : NetworkBehaviour
     private void ApplyBump(float multiplier)
     {
         if (data == null || rb == null) return;
-        
+
         float force = data.jumpForce * multiplier;
-        
+
         rb.linearVelocity = Vector3.zero;
-        
+
         lastPressedJumpTime = 0f;
         lastOnGroundTime   = 0f;
-        
+
         SwitchAnimation("isFalling");
-        
+
         rb.AddForce(Vector3.up * force, ForceMode.Impulse);
-        
+
         Debug.Log("Player " + playerID + " has Bump " + force);
     }
 
@@ -2438,8 +2624,9 @@ public class PlayerMovement3D : NetworkBehaviour
         lastOnGroundTime = 0;
         lastOnWallRightTime = 0;
         lastOnWallLeftTime = 0;
+        CancelGlide();
 
-        // SoundManager.Instance.PlayRandomSFX(clipsRandomWalljump, 0.9f, 1.1f);
+
 
         Vector3 force = new Vector3(data.wallJumpForce.x * dir, data.wallJumpForce.y, 0f);
 
@@ -2474,7 +2661,7 @@ public class PlayerMovement3D : NetworkBehaviour
         vel.z = 0f;
         rb.linearVelocity = vel;
     }
-    
+
     IEnumerator StartDash(Vector3 dir)
     {
         if (!canDash || isCrushed || isStunned || data == null)
@@ -2484,7 +2671,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         StartNewAttackInstance();
-        
+
         if (isGliding)
             CancelGlide();
 
@@ -2518,7 +2705,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
 
             Vector2 animInput = moveInput;
-            
+
             if (GameManager.instance != null && GameManager.instance.is3d)
             {
                 animInput = new Vector2(-moveInput.y, moveInput.x);
@@ -2575,12 +2762,12 @@ public class PlayerMovement3D : NetworkBehaviour
         float currentAlongDash = Vector3.Dot(rb.linearVelocity, dashDir);
         float targetDashSpeed = currentAlongDash + data.dashSpeed;
         targetDashSpeed = Mathf.Clamp(targetDashSpeed, data.dashSpeed, data.dashMaxSpeed);
-        
+
         while (!dashCancelledExternally && Time.time - startTime <= data.dashAttackTime)
         {
             if (jumpAction != null && jumpAction.WasPressedThisFrame())
             {
-                if (TryDashJump(dashDir, dashChild, childOriginalScale, childOriginalRotation, stretchTween))
+                if (TryLongJump())
                     yield break;
             }
 
@@ -2605,7 +2792,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         isDashAttacking = false;
-        
+
         if (!dashCancelledExternally && rb.linearVelocity.y > 0f)
         {
             Vector3 vel = rb.linearVelocity;
@@ -2616,29 +2803,29 @@ public class PlayerMovement3D : NetworkBehaviour
         SetGravityScale(data.gravityScale);
 
         isDashing = false;
-        dashCancelledExternally = false; 
+        dashCancelledExternally = false;
     }
 
-    
-    
+
+
     public void CancelDash()
     {
         if (!isDashing && !isDashAttacking) return;
-        
+
         dashCancelledExternally = true;
-        
+
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
         }
     }
 
-    
+
 
     private IEnumerator StartGroundPound()
     {
         if (isCrushed || isStunned) yield break;
-        
+
         if (GameManager.instance != null && GameManager.instance.is3d) yield break;
 
         StartNewAttackInstance();
@@ -2671,7 +2858,7 @@ public class PlayerMovement3D : NetworkBehaviour
         SwitchAnimation("isGroundPound");
 
         SetGravityScale(0f);
-        
+
         while (!wasGroundedLastFrame && !groundPoundCancelledExternally)
         {
             Vector3 vel = rb.linearVelocity;
@@ -2684,15 +2871,15 @@ public class PlayerMovement3D : NetworkBehaviour
         }
 
         isGroundPounding = false;
-        
+
         rb.linearVelocity = Vector3.zero;
-        
+
         SetGravityScale(data.gravityScale);
-        
+
         if (groundPoundCancelledExternally && !wasGroundedLastFrame)
         {
             groundPoundCancelledExternally = false;
-            
+
             if (!isJumping && !isAirAttcking && !isStayAirAttacking && !isGliding)
             {
                 SwitchAnimation("isFalling");
@@ -2711,7 +2898,7 @@ public class PlayerMovement3D : NetworkBehaviour
     public void CancelGroundPound()
     {
         if (!isGroundPounding) return;
-        
+
         groundPoundCancelledExternally = true;
 
         if (rb != null)
@@ -2722,7 +2909,7 @@ public class PlayerMovement3D : NetworkBehaviour
         Debug.Log("CancelGroundPound() appelé sur le player " + playerID);
     }
 
-    
+
 
 
 
@@ -2734,15 +2921,15 @@ public class PlayerMovement3D : NetworkBehaviour
         else
             currentAttackInstanceId++;
     }
-    
+
     private void StartIdleAttack()
     {
         if (isStunned || isCrushed) return;
-        
+
         if (data == null || rb == null) return;
 
         StartNewAttackInstance();
-        
+
         isIdleAttcking = true;
         isIdleAttackStopping = false;
         idleAttackReleaseQueued = false;
@@ -2751,7 +2938,7 @@ public class PlayerMovement3D : NetworkBehaviour
         isMovingAttcking = false;
         isAirAttcking = false;
         isStayAirAttacking = false;
-        
+
         Vector3 vel = rb.linearVelocity;
         vel.x = 0f;
         vel.z = 0f;
@@ -2759,83 +2946,22 @@ public class PlayerMovement3D : NetworkBehaviour
 
         SwitchAnimation("isIdleAttack");
     }
-    
+
     private void StartIdleAttackStop()
     {
         if (isStunned || isCrushed)return;
-        
+
         isIdleAttackStopping = true;
         idleAttackStopStartTime = Time.time;
-        
+
         SwitchAnimation("isIdleAttackStop");
     }
 
 
-    
-    private bool TryDashJump(Vector3 dashDir, Transform dashChild, Vector3 childOriginalScale, Quaternion childOriginalRotation, Tween stretchTween)
-    {
-        
-        
-        Vector3 origin = transform.position + Vector3.up * 0.1f;
-        Vector3 effectiveNormal = Vector3.up;
-
-        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, data.dashJumpMaxDistance, groundLayer))
-        {
-            float slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
-
-            if (slopeAngle <= data.dashJumpMaxSlopeAngle)
-            {
-                effectiveNormal = hit.normal;
-            }
-        }
-        
-        if (stretchTween != null && stretchTween.IsActive())
-            stretchTween.Kill();
-
-        if (dashChild != null)
-        {
-            dashChild.localScale = childOriginalScale;
-            dashChild.localRotation = childOriginalRotation;
-        }
-        
-        isDashAttacking = false;
-        isDashing = false;
-
-        SetGravityScale(data.gravityScale);
-
-        isJumping = true;
-        isWallJumping = false;
-        isJumpCut = false;
-        isJumpFalling = false;
-
-        lastPressedJumpTime = 0f;
-        lastOnGroundTime = 0f;
 
 
-        Vector3 vel = rb.linearVelocity;
-        
-        Vector3 horizontalVel = new Vector3(vel.x, 0f, vel.z);
-        
-        Vector3 upDir = Vector3.Lerp(Vector3.up, effectiveNormal, 0.4f).normalized;
-        
-        float upSpeed = data.dashJumpUpSpeed;
 
-        float currentAlongUp = Vector3.Dot(vel, upDir);
-        Vector3 velPerpToUp = vel - upDir * currentAlongUp;
 
-        Vector3 finalVel = velPerpToUp + upDir * upSpeed;
-        
-        if (finalVel.y > data.dashJumpMaxUpSpeed)
-        {
-            finalVel.y = data.dashJumpMaxUpSpeed;
-        }
-
-        rb.linearVelocity = finalVel;
-        
-        SwitchAnimation("isJumping");
-
-        return true;
-    }
 
 
 
@@ -2845,7 +2971,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isStunned || isCrushed) return;
 
         StartNewAttackInstance();
-        
+
         isIdleAttcking = false;
         isMovingAttcking = true;
         isAirAttcking = false;
@@ -2861,7 +2987,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             SwitchAnimation("is2DAttack");
         }
-        
+
     }
 
     private void StartAirAttack()
@@ -2869,10 +2995,10 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isStunned || isCrushed) return;
 
         StartNewAttackInstance();
-        
+
         if (isGliding)
             CancelGlide();
-        
+
         isIdleAttcking = false;
         isMovingAttcking = false;
         isAirAttcking = true;
@@ -2888,21 +3014,21 @@ public class PlayerMovement3D : NetworkBehaviour
         if (isStunned || isCrushed) return;
 
         StartNewAttackInstance();
-        
+
         if (isGliding)
             CancelGlide();
-        
+
         isIdleAttcking = false;
         isMovingAttcking = false;
         isAirAttcking = false;
         isStayAirAttacking = true;
-    
+
         float rawHeight = Mathf.Max(0f, lastJumpMaxY - lastGroundY);
         if (rawHeight <= 0.01f)
             rawHeight = data.minHeightBounce;
-    
+
         rawHeight = Mathf.Clamp(rawHeight, data.minHeightBounce, data.maxHeightBounce);
-        
+
         stayAirCurrentHeight = rawHeight;
 
         Vector3 vel = rb.linearVelocity;
@@ -2916,12 +3042,12 @@ public class PlayerMovement3D : NetworkBehaviour
 
         SwitchAnimation("isStayAttack");
     }
-    
+
 
     private void Knockback(Vector3 dir, float force)
     {
         if (IsCrushedNetworkValue) return;
-        
+
         if (dir.sqrMagnitude < 0.0001f)
             dir = transform.forward;
 
@@ -2929,7 +3055,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             dir = new Vector3(dir.x, dir.y, 0);
         }
-        
+
         dir = dir.normalized;
 
         if (Online)
@@ -2940,7 +3066,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             ApplyKnockback(dir, force);
         }
-        
+
     }
 
 
@@ -2970,12 +3096,12 @@ public class PlayerMovement3D : NetworkBehaviour
     #endregion
 
     #region COLLISION & FRICTION
-    
+
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (IsDeadValue || IsRagdoll) return;  
-        
+        if (IsDeadValue || IsRagdoll) return;
+
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
         if (collision.contactCount == 0) return;
@@ -2983,25 +3109,25 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnCollisionStay(Collision collision)
     {
-        if (IsDeadValue || IsRagdoll) return;  
-        
+        if (IsDeadValue || IsRagdoll) return;
+
         if (isStunned) return;
-        
+
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0) return;
 
         if (collision.contactCount == 0) return;
-        
+
         AdaptRotationToTerrain2D(collision);
 
-        
+
     }
 
     private void OnCollisionExit(Collision collision)
     {
-        if (IsDeadValue || IsRagdoll) return;  
-        
+        if (IsDeadValue || IsRagdoll) return;
+
         if (isStunned) return;
-        
+
         if ((groundLayer.value & (1 << collision.gameObject.layer)) == 0)
             return;
 
@@ -3014,7 +3140,7 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-    
+
     #region DYNAMIC COLLIDERS 2D / 3D
 
     private void InitializeDynamicColliders()
@@ -3103,7 +3229,7 @@ public class PlayerMovement3D : NetworkBehaviour
             InitializeDynamicColliders();
 
 
-        
+
         if (Is3DNowValue != lastIs3DState)
         {
             lastIs3DState = Is3DNowValue;
@@ -3128,13 +3254,13 @@ public class PlayerMovement3D : NetworkBehaviour
             }
             else
             {
-      
+
                 SwitchToCollider2D(true);
             }
 
             return;
         }
-        
+
         if (!Is3DNowValue)
         {
             if (collider2DAtMaxExtent)
@@ -3152,7 +3278,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Vector3 c = colliderBottomBody.center;
             c.z = centerOffsetZ;
             colliderBottomBody.center = c;
-            
+
             colliderBottomBody.height = newSizeZ;
 
             float halfThickness = newSizeZ * 0.5f;
@@ -3182,7 +3308,7 @@ public class PlayerMovement3D : NetworkBehaviour
             c.z = centerOffsetZ;
             colliderFeet.center = c;
         }
-        
+
         if (colliderDash != null)
         {
             Vector3 size = colliderDash.size;
@@ -3193,7 +3319,7 @@ public class PlayerMovement3D : NetworkBehaviour
             c.z = centerOffsetZ;
             colliderDash.center = c;
         }
-        
+
         if (colliderGroundPound != null)
         {
             Vector3 size = colliderGroundPound.size;
@@ -3204,7 +3330,7 @@ public class PlayerMovement3D : NetworkBehaviour
             c.z = centerOffsetZ;
             colliderGroundPound.center = c;
         }
-        
+
         if (colliderWeapon != null)
         {
             Vector3 size = colliderWeapon.size;
@@ -3215,7 +3341,7 @@ public class PlayerMovement3D : NetworkBehaviour
             c.z = centerOffsetZ;
             colliderWeapon.center = c;
         }
-        
+
         Vector3 gSize = groundCheckSize;
         gSize.z = newSizeZ;
         groundCheckSize = gSize;
@@ -3320,12 +3446,12 @@ public class PlayerMovement3D : NetworkBehaviour
     private void SwitchToCollider2D(bool forceRecalculation)
     {
         if (!dynamicColliderInitialized) return;
-        
+
         Vector3 origin = transform.position;
 
-        float maxExtent = Mathf.Max(0.01f, collider2DMaxSizeZ);             
+        float maxExtent = Mathf.Max(0.01f, collider2DMaxSizeZ);
         float rayMax    = (raycastLimit > 0f) ? raycastLimit : maxExtent * 2;
-        float signedPos =  maxExtent; 
+        float signedPos =  maxExtent;
         float signedNeg = -maxExtent;
 
         RaycastHit hit;
@@ -3344,8 +3470,8 @@ public class PlayerMovement3D : NetworkBehaviour
             lastNegZHit = hit.collider;
         }
 
-        float candidatePosExtent = Mathf.Max(0.01f, signedPos);  
-        float candidateNegExtent = Mathf.Max(0.01f, -signedNeg); 
+        float candidatePosExtent = Mathf.Max(0.01f, signedPos);
+        float candidateNegExtent = Mathf.Max(0.01f, -signedNeg);
         float candidateSpan    = Mathf.Clamp(candidatePosExtent + candidateNegExtent, 0.02f, maxExtent * 2f);
         float candidateCenterZ = (signedPos + signedNeg) * 0.5f;
 
@@ -3383,7 +3509,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         float desiredSpan    = Mathf.Clamp(desiredPosExtent + desiredNegExtent, 0.02f, maxExtent * 2f);
         float desiredCenterZ = (desiredPosExtent - desiredNegExtent) * 0.5f;
-        
+
         if (!collider2DResizePending)
         {
             targetPosExtentZ2D      = desiredPosExtent;
@@ -3408,7 +3534,7 @@ public class PlayerMovement3D : NetworkBehaviour
                 collider2DNextResizeTime = Time.time + collider2DResizeDelay;
             }
         }
-        
+
         if (collider2DResizePending && Time.time >= collider2DNextResizeTime)
         {
             currentPosExtentZ2D      = targetPosExtentZ2D;
@@ -3426,9 +3552,9 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-    
+
     #region SCORE
-    
+
     public void GainSuperCollectible(int scorePerTick, float intervalSeconds)
     {
         if (!IsServer) return;
@@ -3443,7 +3569,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         superCollectibleCoroutine = StartCoroutine(SuperCollectibleRoutine());
     }
-    
+
     private IEnumerator SuperCollectibleRoutine()
     {
         while (HasSuperCollectibleValue && !IsDeadValue)
@@ -3453,7 +3579,7 @@ public class PlayerMovement3D : NetworkBehaviour
             if (!HasSuperCollectibleValue || IsDeadValue)
                 break;
 
-            AddScoreVersus(superCollectibleScorePerTick);
+            AddScore(superCollectibleScorePerTick);
         }
 
         superCollectibleCoroutine = null;
@@ -3500,17 +3626,17 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-    
+
     #region UI
-    
+
     [ServerRpc(RequireOwnership = true)]
     private void SendRestartVoteServerRpc()
     {
-       
+
         RestartVoteValue = true;
         Debug.Log($"[Versus] Player {playerID} voted for restart.");
     }
-    
+
     [ClientRpc]
     public void SyncVersusStateClientRpc(float newTimer)
     {
@@ -3519,12 +3645,12 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             gm.SyncVersusStateFromServer(newTimer);
         }
-        
+
         hasVotedRestart = false;
-        
+
         if (respawnTextTMP != null)
             respawnTextTMP.gameObject.SetActive(false);
-        
+
         versusResultShown = false;
 
 
@@ -3532,25 +3658,80 @@ public class PlayerMovement3D : NetworkBehaviour
             versusResultPanel.SetActive(false);
     }
 
-    
-    public void AddScoreVersus(int amount)
+
+    public void AddScore(int amount)
     {
         if (amount == 0) return;
-
+        
+        if (!Online)
+        {
+            offlineScore = Mathf.Max(0, offlineScore + amount);
+            
+            GameManager.instance.TryLevelUpFromScore(offlineScore, this);
+            
+            UpdateScoreVersusUI(offlineScore);
+            return;
+        }
+        
         if (!IsServer)
         {
-            RequestAddScoreVersusServerRpc(amount);
+            RequestAddScoreServerRpc(amount);
             return;
         }
 
-        int newValue = Mathf.Max(0, ScoreVersusValue + amount);
-        ScoreVersusValue = newValue;
+        ApplyAddScoreServer(amount);
     }
+
+    private void ApplyAddScoreServer(int amount)
+    {
+        var gm = GameManager.instance;
+        
+        if (gm != null && gm.isGameOnline && !gm.isGameVersusMode)
+        {
+            gm.AddCoopSharedScore(amount);
+            gm.TryLevelUpFromScore(amount, this);
+            return;
+        }
+        
+        int newValue = Mathf.Max(0, scoreVersus.Value + amount);
+        scoreVersus.Value = newValue;
+    }
+
+    public void SpawnPrefabNextLevel()
+    {
+        GameObject nlp = Instantiate(nextLevelPrefab);
+        nlp.GetComponent<LevelUpPrefabsIntro>().Init(gameObject);
+    }
+    
+    private void OnScoreCoopChanged(int previousValue, int newValue)
+    {
+        if (!DisplayScore)
+        {
+            UpdateScoreVersusUI(newValue);
+            return;
+        }
+
+        if (scoreVersusAnimationCoroutine != null)
+            StopCoroutine(scoreVersusAnimationCoroutine);
+
+        scoreVersusAnimationCoroutine = StartCoroutine(
+            AnimateScoreVersus(previousValue, newValue)
+        );
+    }
+
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestAddScoreServerRpc(int amount)
+    {
+        ApplyAddScoreServer(amount);
+    }
+
+
 
     [ServerRpc(RequireOwnership = false)]
     private void RequestAddScoreVersusServerRpc(int amount)
     {
-        AddScoreVersus(amount);
+        AddScore(amount);
     }
 
     private void OnScoreVersusChanged(int previousValue, int newValue)
@@ -3560,10 +3741,10 @@ public class PlayerMovement3D : NetworkBehaviour
             UpdateScoreVersusUI(newValue);
             return;
         }
-        
+
         if (scoreVersusAnimationCoroutine != null)
             StopCoroutine(scoreVersusAnimationCoroutine);
-        
+
         scoreVersusAnimationCoroutine = StartCoroutine(
             AnimateScoreVersus(previousValue, newValue)
         );
@@ -3578,11 +3759,11 @@ public class PlayerMovement3D : NetworkBehaviour
             yield break;
         }
 
-        const float duration = 1f;      
+        const float duration = 1f;
         int direction = (to > from) ? 1 : -1;
 
         int diff = Mathf.Abs(to - from);
-        
+
         int stepMagnitude = diff < 2 ? 1 : 2;
         int step = stepMagnitude * direction;
 
@@ -3592,7 +3773,7 @@ public class PlayerMovement3D : NetworkBehaviour
         float elapsed = 0f;
         float nextStepTime = 0f;
         int current = from;
-        
+
         UpdateScoreVersusUI(current);
 
         while ((direction > 0 && current < to) ||
@@ -3603,7 +3784,7 @@ public class PlayerMovement3D : NetworkBehaviour
             if (elapsed >= nextStepTime)
             {
                 int remaining = to - current;
-                
+
                 if (direction > 0 && current + step > to ||
                     direction < 0 && current + step < to)
                 {
@@ -3620,7 +3801,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
             yield return null;
         }
-        
+
         UpdateScoreVersusUI(to);
         scoreVersusAnimationCoroutine = null;
     }
@@ -3629,7 +3810,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void UpdateScoreVersusUI(int value)
     {
         if (!DisplayScore) return;
-        
+
         string text = $"Score : {value.ToString("D7")}";
 
         if (scoreVersusTMP != null)
@@ -3638,20 +3819,20 @@ public class PlayerMovement3D : NetworkBehaviour
 
     private void OnLifeChanged(int previousValue, int newValue)
     {
-        UpdateLifeUI(newValue, currentMaxLife);
+        UpdateLifeUI(newValue, GameManager.instance.maxLifePlayer);
     }
 
     private void UpdateLifeUI(int current, int max)
     {
-        
+
         current = Mathf.Clamp(current, 0, max);
-        
+
         if (currentLifeTMP != null)
             currentLifeTMP.text = current.ToString();
 
         if (maxLifeTMP != null)
             maxLifeTMP.text = max.ToString();
-        
+
         if (lifeFillImage != null)
         {
             float amount = (max > 0) ? (float)current / max : 0f;
@@ -3715,12 +3896,12 @@ public class PlayerMovement3D : NetworkBehaviour
             yield return new WaitForSeconds(frameTime);
         }
     }
-    
+
     private void UpdateIconFromAnimation(string animationName)
     {
         if (playerIconData == null || iconImage == null)
             return;
-        
+
         if (IsDeadValue)
         {
             SetIconState(PlayerIconState.Dead);
@@ -3757,11 +3938,11 @@ public class PlayerMovement3D : NetworkBehaviour
     private void UpdateVersusUI()
     {
         if (!GameManager.instance.isGameOnline) return;
-        
+
         var gm = GameManager.instance;
         if (gm == null || !gm.useVersusTimer)
             return;
-        
+
         if (gm.versusMatchStarted && !gm.versusMatchFinished)
         {
             if (versusResultShown)
@@ -3812,7 +3993,7 @@ public class PlayerMovement3D : NetworkBehaviour
         foreach (var p in allPlayers)
         {
             if (p == null) continue;
-        
+
             if (!p.IsSpawned) continue;
 
             list.Add(p);
@@ -3821,18 +4002,18 @@ public class PlayerMovement3D : NetworkBehaviour
         if (list.Count == 0)
             return;
 
-        list.Sort((a, b) => b.ScoreVersusValue.CompareTo(a.ScoreVersusValue));
+        list.Sort((a, b) => b.ScoreValue.CompareTo(a.ScoreValue));
         for (int i = 0; i < versusResultLines.Length; i++)
         {
             var line = versusResultLines[i];
-            if (line == null) 
+            if (line == null)
                 continue;
 
             if (i < list.Count)
             {
                 var p = list[i];
-                string playerName = p.name; 
-                int score = p.ScoreVersusValue;
+                string playerName = p.name;
+                int score = p.ScoreValue;
 
                 line.gameObject.SetActive(true);
                 line.text = $"{i + 1}. {playerName} - {score} pts";
@@ -3845,7 +4026,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         versusResultPanel.SetActive(true);
     }
-    
+
     private void TogglePauseMenu()
     {
         if (pauseMenuOpen) ClosePauseMenu();
@@ -3909,10 +4090,10 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             PlayFXLocal(fxPrefab.name, position, rotation);
         }
-        
+
 
     }
-    
+
     [ServerRpc(RequireOwnership = false)]
     private void PlayFXServerRpc(string fxName, Vector3 position, Quaternion rotation)
     {
@@ -3931,7 +4112,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (ps != null)
             ps.Play();
     }
-    
+
     private void PlayFXLocal(string fxName, Vector3 position, Quaternion rotation)
     {
         GameObject fxPrefab = GetFXByName(fxName);
@@ -3943,7 +4124,7 @@ public class PlayerMovement3D : NetworkBehaviour
         if (ps != null)
             ps.Play();
     }
-    
+
     private GameObject GetFXByName(string name)
     {
         if (landFXPrefab != null && landFXPrefab.name == name)
@@ -3951,21 +4132,21 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (dashFXPrefab != null && dashFXPrefab.name == name)
             return dashFXPrefab;
-        
+
         if (runFXPrefabs != null && runFXPrefabs.name == name)
             return runFXPrefabs;
 
         return null;
     }
-    
+
     #endregion
-    
+
     #region MISC
 
     public void AdaptRotationToTerrain2D(Collision collision)
     {
         if (IsDeadValue || IsRagdoll) return;
-        
+
         ContactPoint bestContact = collision.GetContact(0);
         for (int i = 1; i < collision.contactCount; i++)
         {
@@ -4016,9 +4197,9 @@ public class PlayerMovement3D : NetworkBehaviour
         rb.isKinematic = false;
         cannotMove = false;
     }
-    
+
     #endregion
-    
+
     #region ANIMATION
 
     public void DisableAllAnimations()
@@ -4068,12 +4249,12 @@ public class PlayerMovement3D : NetworkBehaviour
             {
                 UpdateAnimationServerRpc(animationName);
             }
-        
+
             UpdateIconFromAnimation(animationName);
         }
     }
 
-    
+
     [ServerRpc(RequireOwnership = false)]
     private void UpdateAnimationServerRpc(string animationName)
     {
@@ -4091,7 +4272,7 @@ public class PlayerMovement3D : NetworkBehaviour
         {
             animationName = "isDamaged";
         }
-        
+
         if (isCrushed && animationName != "isCrushed")
         {
             Debug.Log("Player " + playerID + " SwitchAnimationRemote : " + animationName);
@@ -4102,14 +4283,14 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (!string.IsNullOrEmpty(animationName))
             playerAnimator.SetBool(animationName, true);
-        
-        
+
+
     }
-    
+
     private void SwitchAnimationByNetwork(string animationName = "isDamaged")
     {
         Debug.Log("Player " + playerID + " SwitchAnimationByNetwork : " + animationName);
-        
+
         if (IsServer)
         {
             AnimationClientRpc(animationName);
@@ -4124,7 +4305,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void RequestAnimationServerRpc(string animationName)
     {
         Debug.Log("Player " + playerID + " RequestAnimationServerRpc : " + animationName);
-        
+
         AnimationClientRpc(animationName);
     }
 
@@ -4138,7 +4319,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void PlayAnimationLocal(string animationName)
     {
         Debug.Log("Player " + playerID + " PlayAnimationLocal : " + animationName);
-        
+
         DisableAllAnimations();
         if (playerAnimator != null)
             playerAnimator.SetBool(animationName, true);
@@ -4160,7 +4341,7 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
     #endregion
-    
+
     #region GROUND CALLBACKS
 
     public void TouchGround()
@@ -4170,11 +4351,11 @@ public class PlayerMovement3D : NetworkBehaviour
             isGliding = false;
             glideRequested = false;
         }
-        
+
         Vector3 fxPos = groundCheckPoint != null ? groundCheckPoint.position : transform.position;
-        
+
         PlayFX(landFXPrefab, Quaternion.identity, fxPos);
-        
+
         if (isStayAirAttacking && data != null)
         {
             float previousHeight;
@@ -4194,7 +4375,7 @@ public class PlayerMovement3D : NetworkBehaviour
             }
 
             float nextHeight = previousHeight / data.nextBounceDivision;
-            
+
             nextHeight = Mathf.Clamp(nextHeight, data.minHeightBounce, data.maxHeightBounce);
 
             if (Time.time - lastJumpButtonTime <= data.bonusBounceMarge)
@@ -4202,9 +4383,9 @@ public class PlayerMovement3D : NetworkBehaviour
                 nextHeight *= data.bonusBounceMult;
                 nextHeight = Mathf.Clamp(nextHeight, data.minHeightBounce, data.maxHeightBounce);
             }
-            
+
             stayAirCurrentHeight = nextHeight;
-            
+
             float effectiveGravity = Mathf.Abs(data.gravityStrength);
             if (effectiveGravity < 0.0001f)
             {
@@ -4217,10 +4398,10 @@ public class PlayerMovement3D : NetworkBehaviour
             Vector3 vel = rb.linearVelocity;
             vel.y = bounceVelocity;
             rb.linearVelocity = vel;
-            
+
             Debug.Log($"[StayAir] prev={previousHeight:F3} next={nextHeight:F3} g={effectiveGravity:F3} v={bounceVelocity:F3}");
         }
-        
+
         trackJumpHeight = false;
 
         isSliding = false;
@@ -4237,7 +4418,7 @@ public class PlayerMovement3D : NetworkBehaviour
     private void LeaveGround()
     {
         isIdleAttcking = false;
-        isIdleAttackStopping = false; 
+        isIdleAttackStopping = false;
         idleAttackReleaseQueued = false;
         isMovingAttcking = false;
         attackStateEndTime = 0f;
@@ -4257,7 +4438,7 @@ public class PlayerMovement3D : NetworkBehaviour
     #region GIZMOS
     private void OnDrawGizmos()
     {
-  
+
         if (groundCheckPoint != null)
         {
             Gizmos.color = Color.yellow;
@@ -4296,7 +4477,7 @@ public class PlayerMovement3D : NetworkBehaviour
             }
             else
             {
-                
+
                 halfZ = airAttackGroundRadius;
             }
 
@@ -4320,7 +4501,7 @@ public class PlayerMovement3D : NetworkBehaviour
 
         float maxRayLen = raycastLimit <= 0f ? 100f : raycastLimit;
 
-        
+
         if (Application.isPlaying)
         {
             RaycastHit hit;
@@ -4340,7 +4521,7 @@ public class PlayerMovement3D : NetworkBehaviour
             {
                 Gizmos.DrawLine(origin, origin + dirPos * lenPos);
             }
-            
+
             Gizmos.color = debugRayNegColor;
             Vector3 dirNeg = Vector3.back;
             float lenNeg = maxRayLen;
@@ -4358,7 +4539,7 @@ public class PlayerMovement3D : NetworkBehaviour
         }
         else
         {
-            
+
             Gizmos.color = debugRayPosColor;
             Gizmos.DrawLine(origin, origin + Vector3.forward * maxRayLen);
 
@@ -4366,7 +4547,7 @@ public class PlayerMovement3D : NetworkBehaviour
             Gizmos.DrawLine(origin, origin + Vector3.back * maxRayLen);
         }
     }
-    
+
     private void DrawCircle(Vector3 center, float radius, int segments = 32)
     {
         float angleStep = 360f / segments;
@@ -4394,16 +4575,16 @@ public class PlayerMovement3D : NetworkBehaviour
 
         if (transform.childCount == 0)
             return transform;
-        
+
         Transform firstChild = transform.GetChild(0);
-        
+
         if (colliderObject != null && firstChild == colliderObject.transform)
         {
             if (transform.childCount > 1)
                 return transform.GetChild(1);
             return null;
         }
-        
+
         if (colliderObject != null)
         {
             for (int i = 0; i < firstChild.childCount; i++)
@@ -4414,24 +4595,24 @@ public class PlayerMovement3D : NetworkBehaviour
             }
         }
 
-       
+
         if (firstChild.childCount > 0)
             return firstChild.GetChild(0);
 
         return firstChild;
     }
-    
+
 
     public Tween TweenBounce(float squishDuration = 0.1f, float recoverDuration = 0.4f)
     {
         if (visualRoot == null) return null;
 
         EnsureVisualRootDefaults();
-        
+
         visualRoot.DOKill(true);
 
         Sequence seq = DOTween.Sequence();
-        
+
         Vector3 baseScale = visualRootDefaultLocalScale;
         Vector3 basePos   = visualRootDefaultLocalPos;
 
@@ -4471,10 +4652,10 @@ public class PlayerMovement3D : NetworkBehaviour
     }
 
 
-    
+
     private void TriggerLandBounceFX()
     {
-       
+
 
         if (Online)
         {

@@ -27,10 +27,7 @@ public class ZoneDeath : MonoBehaviour
         PlayerMovement3D player = other.GetComponentInParent<PlayerMovement3D>();
         if (player == null)
             return;
-
         
-        if (NetworkManager.Singleton != null && !NetworkManager.Singleton.IsServer)
-            return;
         
         Vector3 dir = (player.transform.position - transform.position).normalized;
         if (dir.sqrMagnitude < 0.001f)

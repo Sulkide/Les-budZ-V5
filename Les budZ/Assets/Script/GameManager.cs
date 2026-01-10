@@ -15,13 +15,26 @@ public class GameManager : MonoBehaviour
     
     [Header("Online Settings")]
     public bool isGameOnline = false;
+    public bool isGameVersusMode = false;
     
     [Header("Player information")]
     public List<PlayerMovement3D> allPlayers = new List<PlayerMovement3D>();
+
+    public int currentPlayerLevel = 1;
     public bool is3d;
     public int nextPlayerID = 1;
     public event System.Action<bool> OnPauseChanged;
     public event System.Action OnSoloPauseInvalidated;
+
+    public int currentScore;
+    public int maxLifePlayer = 15;
+    public int maxDamagePlayer = 1;
+
+    public int addMaxLife = 5;
+    public int addMaxDamage = 1;
+    public int basePalier = 200;
+    public int nextLevelAt;
+    public event System.Action<int, int, int> OnLevelUp; 
 
     private bool soloPauseTimeScaleActive = false;
 
@@ -64,6 +77,7 @@ public class GameManager : MonoBehaviour
     
     void Start()
     {
+        RecalculateNextLevelAt();
         
         if (realTimeText == null)
         {
@@ -260,6 +274,45 @@ public class GameManager : MonoBehaviour
 
     #endregion
 
+    #region LEVEL PLAYER
+
+
+
+    public void TryLevelUpFromScore(int amount, PlayerMovement3D pm)
+    {
+        currentScore = amount;
+        
+        if (currentScore >= nextLevelAt)
+        {
+            LevelUpOnce(pm);
+            RecalculateNextLevelAt();
+        }
+    }
+
+    private void LevelUpOnce(PlayerMovement3D pm)
+    {
+        currentPlayerLevel++;
+        
+        if (currentPlayerLevel % 2 == 0)
+            maxLifePlayer += addMaxLife;
+        else
+            maxDamagePlayer += addMaxDamage;
+
+        OnLevelUp?.Invoke(currentPlayerLevel, maxLifePlayer, maxDamagePlayer);
+        
+        pm.SpawnPrefabNextLevel();
+        
+        Debug.Log($"[LEVEL UP] Level={currentPlayerLevel} | MaxLife={maxLifePlayer} | MaxDamage={maxDamagePlayer} | NextAt={nextLevelAt}");
+    }
+
+    private void RecalculateNextLevelAt()
+    {
+        float multiplier = 1f + (currentPlayerLevel / 100f);
+        nextLevelAt = Mathf.CeilToInt(currentScore + (basePalier * multiplier));
+    }
+
+    #endregion
+
     #region VERSUS MODE
 
     public void CheckRestartVotes()
@@ -356,7 +409,7 @@ public class GameManager : MonoBehaviour
             p.hasSuperCollectible.Value = false;
             p.isDead.Value = false;
 
-            p.Respawn();
+            p.RespawnOnlineVersus();
         }
     }
 
@@ -406,6 +459,64 @@ public class GameManager : MonoBehaviour
         return $"{ts.Minutes:00}:{ts.Seconds:00}";
     }
     
+    #endregion
+    
+    #region SCORE (Coop partagé)
+
+    public int GetCurrentCoopSharedScore()
+    {
+        // On suppose que tous les joueurs ont la même valeur en coop.
+        // On prend le premier joueur valide comme "source de vérité".
+        allPlayers.RemoveAll(p => p == null);
+
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+            if (!p.IsSpawned) continue;
+            return p.scoreCoop.Value;
+        }
+
+        return 0;
+    }
+
+    public int AddCoopSharedScore(int amount)
+    {
+        if (!isGameOnline) return 0;
+        if (isGameVersusMode) return 0;
+
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+        {
+            Debug.LogWarning("[CoopScore] AddCoopSharedScore appelé côté client (ignoré).");
+            return GetCurrentCoopSharedScore();
+        }
+
+        int current = GetCurrentCoopSharedScore();
+        int newValue = Mathf.Max(0, current + amount);
+        
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+            if (!p.IsSpawned) continue;
+            p.scoreCoop.Value = newValue;
+
+        }
+
+        return newValue;
+    }
+
+    public void ResetCoopSharedScore()
+    {
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer)
+            return;
+
+        foreach (var p in allPlayers)
+        {
+            if (p == null) continue;
+            if (!p.IsSpawned) continue;
+            p.scoreCoop.Value = 0;
+        }
+    }
+
     #endregion
     
     #region CAMERA
@@ -471,6 +582,15 @@ public class GameManager : MonoBehaviour
             cameraFlip3D.Flip2Dto3D();
         }
 
+    }
+    
+    #endregion
+    
+    #region SAVE
+
+    public void SetCurrentSceneName()
+    {
+        currentSceneName = SceneManager.GetActiveScene().name;
     }
     
     #endregion

@@ -40,7 +40,7 @@ MonoBehaviour:
   jumpHangTimeThreshold: 1
   jumpHangAccelerationMult: 1.1
   jumpHangMaxSpeedMult: 1.3
-  wallJumpForce: {x: 16, y: 27}
+  wallJumpForce: {x: 20, y: 27}
   wallJumpRunLerp: 0.5
   wallJumpTime: 0.15
   doTurnOnWallJump: 0
@@ -63,22 +63,22 @@ MonoBehaviour:
   dashEndRunLerp: 0.5
   dashRefillTime: 0.25
   dashInputBufferTime: 0.1
-  dashJumpMaxDistance: 0.8
-  dashJumpMaxSlopeAngle: 70
-  dashJumpForceMult: 1
-  dashJumpNormalInfluence: 0.4
-  dashJumpMaxUpSpeed: 30
-  dashJumpUpSpeed: 30
+  longJumpSpeed: 30
+  longJumpVelocity: 35
+  longJumpMaxHeight: 0.5
+  longJumpInputTolerance: 0.5
   groundPoundAngleTolerance: 30
   groundPoundSpeed: 30
   groundPoundFreezeTime: 0.5
   idleAttackTime: 1
+  idleAttackMinHoldTime: 0.5
+  idleAttackStopDuration: 0.5
   movingAttackTime: 0.5
   airAttackTime: 0.25
-  stayAirAttackAccel: 20
+  stayAirAttackAccel: 15
   stayAirAttackOppositeDecel: 25
-  stayAirAttackMaxSpeed: 15
-  stayAirAttackBounceForce: 10
+  stayAirAttackMaxSpeed: 25
+  stayAirAttackBounceForce: 15
   stayAirAttackMinSpeed: 1
   minHeightBounce: 5
   maxHeightBounce: 10
